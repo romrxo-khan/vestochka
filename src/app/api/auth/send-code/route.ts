@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { issueCode, isValidContact, normalizeContact } from '@/lib/otp'
 import { sendVerificationEmail } from '@/lib/email'
 import { sendVerificationSms } from '@/lib/sms'
+import { guardSendCode, clientIp } from '@/lib/ratelimit'
 
 export const runtime = 'nodejs'
 
@@ -22,6 +23,15 @@ export async function POST(req: Request) {
   const contact = normalizeContact(channel, body.contact)
   if (!isValidContact(channel, contact)) {
     return NextResponse.json({ ok: false, error: 'invalid_contact' }, { status: 400 })
+  }
+
+  // Антиспам/антискрутка: лимиты по IP, по контакту и глобальный потолок трат.
+  const guard = guardSendCode({ ip: clientIp(req), contact, channel })
+  if (!guard.ok) {
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited', retryAfterSec: guard.retryAfterSec },
+      { status: 429, headers: { 'retry-after': String(guard.retryAfterSec) } },
+    )
   }
 
   const issued = issueCode(contact)

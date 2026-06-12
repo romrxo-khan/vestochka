@@ -29,6 +29,8 @@ export default function RegisterCard() {
       const data = await res.json()
       if (!res.ok || !data.ok) {
         if (data.error === 'cooldown') setError(`Подождите ${data.retryAfterSec} c и попробуйте снова.`)
+        else if (data.error === 'rate_limited')
+          setError('Слишком много запросов. Попробуйте позже.')
         else if (data.error === 'invalid_contact') setError(`Проверьте ${labelFor}.`)
         else if (data.error === 'sms_failed' || data.error === 'send_failed')
           setError('Не удалось отправить код. Попробуйте ещё раз.')
