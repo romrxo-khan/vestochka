@@ -1,0 +1,10 @@
+# секреты и окружение
+.env*
+!.env.example
+
+# зависимости и сборка
+node_modules/
+.next/
+dist/
+build/
+.DS_Store
