@@ -12,7 +12,9 @@ export default function RegisterCard() {
         Начать пользоваться
       </span>
       <div className="head">Регистрация</div>
-      <p className="lead">Телефон или почта — и MAX у вас в Telegram. Пары минут хватит.</p>
+      <p className="lead">
+        Телефон или почта — и MAX у вас в Telegram. <strong>Первая неделя бесплатно.</strong>
+      </p>
 
       <div className="seg">
         <button

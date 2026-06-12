@@ -81,6 +81,7 @@ header { padding: 26px 0; }
 }
 .button-ghost:hover { border-color: var(--blue); color: var(--blue); }
 .act .meta { font-size: 14px; color: var(--soft); }
+.hero-note { margin-top: 16px; font-size: 14px; color: var(--soft); }
 
 section { padding: 18px 0; }
 .head { font-size: clamp(25px, 3.4vw, 33px); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }

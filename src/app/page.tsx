@@ -35,6 +35,7 @@ export default function Home() {
             Войти
           </a>
         </div>
+        <p className="hero-note">Первая неделя бесплатно · MAX ставить не нужно</p>
       </div>
 
       <section style={{ paddingTop: 40 }}>
