@@ -1,3 +1,6 @@
+import Link from 'next/link'
+import RegisterCard from '@/components/RegisterCard'
+
 export default function Home() {
   return (
     <div className="wrap">
@@ -7,7 +10,8 @@ export default function Home() {
             Весточка<b>.</b>
           </div>
           <nav>
-            <a href="#start">Подключиться</a>
+            <Link href="/blog">Блог</Link>
+            <a href="#register">Регистрация</a>
           </nav>
         </div>
       </header>
@@ -19,17 +23,13 @@ export default function Home() {
         </h1>
         <p className="sub">
           Сообщения из MAX приходят в привычный Telegram. Отвечайте текстом, голосом, фото и
-          кружками — не устанавливая MAX на телефон.
+          кружками — <strong className="hl">не устанавливая MAX на телефон</strong>.
         </p>
-        <div className="act">
-          <a className="button" href="#start">
-            Подключиться
-          </a>
-          <span className="meta">Пара минут на подключение · переписка остаётся у&nbsp;вас</span>
-        </div>
       </div>
 
-      <section>
+      <RegisterCard />
+
+      <section style={{ paddingTop: 40 }}>
         <span className="eyebrow">Что это даёт</span>
         <div className="list">
           <div className="row">
@@ -102,41 +102,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="start">
-        <div className="cta">
-          <span className="eyebrow" style={{ color: '#7fb0ff' }}>
-            Подключиться
-          </span>
-          <div className="head">Оставьте контакт</div>
-          <p className="lead">Пришлём ссылку для подключения. Выберите, как удобнее.</p>
-          <input type="radio" name="method" id="m-phone" className="seg-radio" defaultChecked />
-          <input type="radio" name="method" id="m-email" className="seg-radio" />
-          <div className="seg">
-            <label htmlFor="m-phone">По телефону</label>
-            <label htmlFor="m-email">По почте</label>
-          </div>
-          <form action="#" method="post">
-            <input
-              className="in-phone"
-              type="tel"
-              name="phone"
-              placeholder="Номер телефона, +7…"
-              autoComplete="tel"
-              inputMode="tel"
-            />
-            <input
-              className="in-email"
-              type="email"
-              name="email"
-              placeholder="Электронная почта"
-              autoComplete="email"
-            />
-            <button type="submit">Получить доступ</button>
-          </form>
-          <p className="fine">Нажимая кнопку, вы соглашаетесь с обработкой персональных данных.</p>
-        </div>
-      </section>
-
       <section style={{ paddingTop: 56 }}>
         <span className="eyebrow">Что важно знать</span>
         <div className="limits">
@@ -162,6 +127,10 @@ export default function Home() {
             </p>
           </div>
         </div>
+      </section>
+
+      <section style={{ paddingTop: 56 }}>
+        <RegisterCard />
       </section>
 
       <footer>

@@ -35,16 +35,14 @@ header { padding: 26px 0; }
 .top { display: flex; align-items: center; justify-content: space-between; }
 .mark { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
 .mark b { color: var(--blue); }
-.top nav a {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--blue);
-  text-decoration: none;
-  padding: 12px 20px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-}
-.top nav a:hover { border-color: var(--blue); background: var(--blue-soft); }
+.top nav { display: flex; gap: 22px; align-items: center; }
+.top nav a { font-size: 15px; font-weight: 600; color: var(--blue); text-decoration: none; padding: 8px 0; }
+.top nav a:hover { text-decoration: underline; }
+.top nav a[href='#register'] { padding: 11px 20px; border: 1px solid var(--line); border-radius: 999px; }
+.top nav a[href='#register']:hover { border-color: var(--blue); background: var(--blue-soft); text-decoration: none; }
+
+/* выделение ключевой фразы в подзаголовке */
+.hl { color: var(--ink); font-weight: 700; }
 
 /* hero */
 .hero { padding: 70px 0 80px; max-width: 780px; }
@@ -127,16 +125,12 @@ form button {
 form button:hover { background: var(--blue-deep); }
 .fine { font-size: 13px; color: #7e8ba3; margin-top: 16px; max-width: 520px; }
 
-/* способ авторизации: сегмент-переключатель (CSS-only, без JS) */
-.seg-radio { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+/* способ авторизации: сегмент-переключатель (React-состояние) */
 .seg { display: inline-flex; gap: 3px; margin-top: 22px; padding: 3px; background: rgba(255, 255, 255, 0.06); border: 1px solid #2a3a55; border-radius: 12px; }
-.seg label { padding: 11px 20px; border-radius: 9px; font-size: 14px; font-weight: 600; color: #aebbcf; cursor: pointer; user-select: none; }
-.seg label:hover { color: #fff; }
-#m-phone:checked ~ .seg label[for='m-phone'],
-#m-email:checked ~ .seg label[for='m-email'] { background: var(--blue); color: #fff; }
+.seg button { padding: 11px 20px; border-radius: 9px; font-size: 14px; font-weight: 600; color: #aebbcf; cursor: pointer; user-select: none; background: none; border: none; font-family: inherit; }
+.seg button:hover { color: #fff; }
+.seg button.on { background: var(--blue); color: #fff; }
 .cta form { margin-top: 14px; }
-#m-phone:checked ~ form .in-email { display: none; }
-#m-email:checked ~ form .in-phone { display: none; }
 
 footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12px; color: var(--soft); font-size: 13px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
@@ -145,3 +139,48 @@ footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12
   .row { grid-template-columns: 44px 1fr; gap: 6px 18px; }
   .cta { padding: 40px 24px; }
 }
+
+/* ============ блог ============ */
+.col { max-width: 720px; margin: 0 auto; padding: 40px 0 96px; }
+.blog-h1 { font-size: clamp(34px, 5vw, 48px); font-weight: 800; letter-spacing: -0.02em; margin: 18px 0 12px; }
+.blog-lead { color: var(--soft); font-size: 17px; max-width: 580px; margin-bottom: 40px; }
+
+.blog-list { list-style: none; }
+.blog-item { padding: 30px 0; border-bottom: 1px solid var(--line); }
+.blog-item a { display: block; text-decoration: none; color: inherit; }
+.blog-item h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 8px 0; }
+.blog-item:hover h2 { color: var(--blue); }
+.blog-item p { color: var(--soft); font-size: 16px; }
+
+.post-meta { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); font-weight: 600; }
+.post-title { font-size: clamp(30px, 4.6vw, 44px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 14px 0; }
+.post-desc { font-size: 18px; color: var(--soft); margin-bottom: 40px; }
+
+.tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.tag { font-size: 11px; letter-spacing: 0.03em; color: var(--blue); border: 1px solid var(--line); padding: 4px 10px; border-radius: 999px; }
+
+/* MDX-контент поста */
+.blog-body { font-size: 17px; line-height: 1.75; color: var(--ink); }
+.blog-body > * + * { margin-top: 20px; }
+.blog-body h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-top: 44px; }
+.blog-body h3 { font-size: 20px; font-weight: 700; margin-top: 32px; }
+.blog-body p { color: #29384a; }
+.blog-body a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.blog-body ul, .blog-body ol { padding-left: 24px; }
+.blog-body li { margin-top: 8px; }
+.blog-body blockquote { border-left: 3px solid var(--blue); padding-left: 18px; color: var(--soft); font-style: italic; }
+.blog-body code { background: var(--blue-soft); padding: 2px 6px; border-radius: 5px; font-size: 0.9em; }
+.blog-body pre { background: #0c1b34; color: #e6edf6; padding: 18px; border-radius: 10px; overflow-x: auto; font-size: 14px; }
+.blog-body pre code { background: none; padding: 0; }
+.blog-body img { max-width: 100%; border-radius: 12px; border: 1px solid var(--line); }
+.blog-body hr { border: none; border-top: 1px solid var(--line); }
+
+.related { margin-top: 72px; }
+.related-list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.related-card { display: block; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: inherit; }
+.related-card:hover { border-color: var(--blue); }
+.related-title { font-size: 17px; font-weight: 700; margin: 6px 0; }
+.related-desc { font-size: 14px; color: var(--soft); }
+
+.post-cta { margin-top: 72px; padding-top: 28px; border-top: 1px solid var(--line); color: var(--soft); font-size: 16px; }
+.post-cta a { color: var(--blue); text-decoration: none; font-weight: 700; }
