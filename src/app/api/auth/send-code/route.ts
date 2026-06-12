@@ -22,7 +22,9 @@ export async function POST(req: Request) {
 
   const contact = normalizeContact(channel, body.contact)
   if (!isValidContact(channel, contact)) {
-    return NextResponse.json({ ok: false, error: 'invalid_contact' }, { status: 400 })
+    // Телефон принимаем только РФ-мобильный; иностранцам подсказываем путь через почту.
+    const error = channel === 'phone' ? 'phone_not_ru' : 'invalid_contact'
+    return NextResponse.json({ ok: false, error }, { status: 400 })
   }
 
   // Антиспам/антискрутка: лимиты по IP, по контакту и глобальный потолок трат.

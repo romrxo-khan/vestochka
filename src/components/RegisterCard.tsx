@@ -31,6 +31,8 @@ export default function RegisterCard() {
         if (data.error === 'cooldown') setError(`Подождите ${data.retryAfterSec} c и попробуйте снова.`)
         else if (data.error === 'rate_limited')
           setError('Слишком много запросов. Попробуйте позже.')
+        else if (data.error === 'phone_not_ru')
+          setError('Принимаем только российские номера (+7 9XX…). Иностранный номер? Зарегистрируйтесь по почте.')
         else if (data.error === 'invalid_contact') setError(`Проверьте ${labelFor}.`)
         else if (data.error === 'sms_failed' || data.error === 'send_failed')
           setError('Не удалось отправить код. Попробуйте ещё раз.')
@@ -119,7 +121,7 @@ export default function RegisterCard() {
                   <input
                     type="tel"
                     name="phone"
-                    placeholder="Номер телефона, +7…"
+                    placeholder="Российский номер, +7 9XX…"
                     autoComplete="tel"
                     inputMode="tel"
                     value={contact}

@@ -33,15 +33,22 @@ function hashCode(contact: string, code: string): string {
 /** Нормализует контакт, чтобы ключ был стабильным. */
 export function normalizeContact(channel: 'email' | 'phone', raw: string): string {
   if (channel === 'email') return raw.trim().toLowerCase()
-  // телефон: оставляем только цифры, ведущую 8 в РФ приводим к 7
+  // телефон → E.164 РФ. Приводим частые формы ввода к +7XXXXXXXXXX:
   let d = raw.replace(/\D/g, '')
-  if (d.length === 11 && d.startsWith('8')) d = '7' + d.slice(1)
+  if (d.length === 11 && d.startsWith('8')) d = '7' + d.slice(1) // 8XXXXXXXXXX → 7XXXXXXXXXX
+  if (d.length === 10 && d.startsWith('9')) d = '7' + d // 9XXXXXXXXX (без кода страны) → 7…
   return '+' + d
 }
 
+/**
+ * Телефон принимаем ТОЛЬКО российский мобильный: +7 9XX XXX-XX-XX.
+ * Это и аудитория сервиса, и защита от SMS-pumping на дорогие зарубежные номера.
+ * `+79` отсекает заодно Казахстан (+77), который тоже в зоне +7.
+ * Иностранные пользователи регистрируются по email.
+ */
 export function isValidContact(channel: 'email' | 'phone', value: string): boolean {
   if (channel === 'email') return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)
-  return /^\+\d{11,15}$/.test(value) // E.164-ish
+  return /^\+79\d{9}$/.test(value)
 }
 
 export type IssueResult =
