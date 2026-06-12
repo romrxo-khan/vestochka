@@ -38,8 +38,8 @@ header { padding: 26px 0; }
 .top nav { display: flex; gap: 22px; align-items: center; }
 .top nav a { font-size: 15px; font-weight: 600; color: var(--blue); text-decoration: none; padding: 8px 0; }
 .top nav a:hover { text-decoration: underline; }
-.top nav a[href='#register'] { padding: 11px 20px; border: 1px solid var(--line); border-radius: 999px; }
-.top nav a[href='#register']:hover { border-color: var(--blue); background: var(--blue-soft); text-decoration: none; }
+.top nav a.nav-pill { padding: 11px 20px; border: 1px solid var(--line); border-radius: 999px; }
+.top nav a.nav-pill:hover { border-color: var(--blue); background: var(--blue-soft); text-decoration: none; }
 
 /* выделение ключевой фразы в подзаголовке */
 .hl { color: var(--ink); font-weight: 700; }
@@ -68,6 +68,18 @@ header { padding: 26px 0; }
   box-shadow: 0 6px 18px rgba(29, 111, 242, 0.22);
 }
 .button:hover { background: var(--blue-deep); }
+.button-ghost {
+  display: inline-block;
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 13px 28px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.button-ghost:hover { border-color: var(--blue); color: var(--blue); }
 .act .meta { font-size: 14px; color: var(--soft); }
 
 section { padding: 18px 0; }

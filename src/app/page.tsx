@@ -11,7 +11,9 @@ export default function Home() {
           </div>
           <nav>
             <Link href="/blog">Блог</Link>
-            <a href="#register">Регистрация</a>
+            <a href="#register" className="nav-pill">
+              Войти
+            </a>
           </nav>
         </div>
       </header>
@@ -25,9 +27,15 @@ export default function Home() {
           Сообщения из MAX приходят в привычный Telegram. Отвечайте текстом, голосом, фото и
           кружками — <strong className="hl">не устанавливая MAX на телефон</strong>.
         </p>
+        <div className="act">
+          <a className="button" href="#register">
+            Регистрация
+          </a>
+          <a className="button-ghost" href="#register">
+            Войти
+          </a>
+        </div>
       </div>
-
-      <RegisterCard />
 
       <section style={{ paddingTop: 40 }}>
         <span className="eyebrow">Что это даёт</span>
