@@ -42,14 +42,27 @@ async function sendViaTgGateway(phone: string, code: string, token: string): Pro
 }
 
 export async function sendVerificationSms(phone: string, code: string): Promise<SmsResult> {
-  const smsru = process.env.SMSRU_API_ID
   const tg = process.env.TG_GATEWAY_TOKEN
-  try {
-    if (smsru) return await sendViaSmsRu(phone, code, smsru)
-    if (tg) return await sendViaTgGateway(phone, code, tg)
-  } catch (e) {
-    return { ok: false, provider: smsru ? 'smsru' : 'tg-gateway', error: String(e) }
+  const smsru = process.env.SMSRU_API_ID
+
+  // Стратегия «оба»: сначала дешёвый Telegram Gateway; если не вышло (номера нет в TG
+  // или провайдер ответил ошибкой) — фолбэк на обычную SMS через SMS.RU.
+  const chain: Array<() => Promise<SmsResult>> = []
+  if (tg) chain.push(() => sendViaTgGateway(phone, code, tg))
+  if (smsru) chain.push(() => sendViaSmsRu(phone, code, smsru))
+
+  let last: SmsResult | null = null
+  for (const attempt of chain) {
+    try {
+      last = await attempt()
+      if (last.ok) return last
+    } catch (e) {
+      last = { ok: false, provider: 'smsru', error: String(e) }
+    }
   }
+  if (last) return last
+
+  // Ничего не настроено — dev-режим: печатаем код в консоль, поток проходим локально.
   console.log(`[sms:dev] код для ${phone}: ${code}`)
   return { ok: true, provider: 'dev' }
 }
