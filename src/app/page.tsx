@@ -143,7 +143,9 @@ export default function Home() {
       </section>
 
       <footer>
-        <span>Весточка — мост между MAX и Telegram.</span>
+        <span>
+          <Link href="/blog">Блог</Link> · <Link href="/editorial-policy">Редполитика</Link>
+        </span>
         <span>Не является официальным сервисом MAX.</span>
       </footer>
     </div>

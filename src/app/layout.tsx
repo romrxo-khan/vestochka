@@ -33,9 +33,24 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const orgSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Весточка',
+    url: 'https://vestochka.uk',
+    description: DESCRIPTION,
+    logo: 'https://vestochka.uk/favicon.ico',
+  }
+
   return (
     <html lang="ru" className={manrope.variable}>
-      <body>{children}</body>
+      <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema).replace(/</g, '\\u003c') }}
+        />
+        {children}
+      </body>
     </html>
   )
 }
