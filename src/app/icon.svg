@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3d88ff"/><stop offset="1" stop-color="#1763ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#g)"/>
+  <g fill="#fff">
+    <!-- head + body (shorter, rounder head) -->
+    <circle cx="256" cy="168" r="26"/>
+    <path d="M256 176 C278 176 290 200 290 230 C290 280 274 326 256 360 C238 326 222 280 222 230 C222 200 234 176 256 176 Z"/>
+    <!-- forked tail -->
+    <path d="M256 312 L232 398 L256 356 L280 398 Z"/>
+    <!-- left wing: fuller near body, pointed tip, swept up -->
+    <path id="w" d="M256 224 C214 214 150 196 88 160 C112 210 158 248 212 262 C232 267 248 264 256 258 Z"/>
+    <use href="#w" transform="translate(512,0) scale(-1,1)"/>
+  </g>
+</svg>
