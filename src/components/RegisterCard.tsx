@@ -16,9 +16,6 @@ export default function RegisterCard() {
   const [error, setError] = useState('')
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaReset, setCaptchaReset] = useState(0)
-  const [sentVia, setSentVia] = useState<'tg' | 'sms' | 'email'>('tg')
-  const [smsBusy, setSmsBusy] = useState(false)
-  const [smsSent, setSmsSent] = useState(false)
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const labelFor = method === 'phone' ? 'номер телефона' : 'почту'
@@ -50,8 +47,6 @@ export default function RegisterCard() {
         else setError('Что-то пошло не так. Попробуйте ещё раз.')
         return
       }
-      setSentVia(data.via ?? (method === 'email' ? 'email' : 'tg'))
-      setSmsSent(false)
       setStep('code')
     } catch {
       setError('Нет связи с сервером. Попробуйте ещё раз.')
@@ -83,36 +78,6 @@ export default function RegisterCard() {
       setError('Нет связи с сервером. Попробуйте ещё раз.')
     } finally {
       setBusy(false)
-    }
-  }
-
-  // «Получить по SMS»: переслать тот же код обычной SMS (если в Telegram не пришёл).
-  async function getSms() {
-    setError('')
-    setSmsBusy(true)
-    try {
-      const res = await fetch('/api/auth/send-code', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ channel: 'phone', contact, via: 'sms' }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.ok) {
-        if (data.error === 'cooldown')
-          setError(`Подождите ${data.retryAfterSec} c перед повторной отправкой.`)
-        else if (data.error === 'rate_limited') setError('Слишком много запросов. Попробуйте позже.')
-        else if (data.error === 'sms_failed') setError('Не удалось отправить SMS. Попробуйте ещё раз.')
-        else if (data.error === 'captcha_failed')
-          setError('Сессия истекла. Нажмите «Изменить контакт» и начните заново.')
-        else setError('Не удалось отправить SMS.')
-        return
-      }
-      setSentVia('sms')
-      setSmsSent(true)
-    } catch {
-      setError('Нет связи с сервером. Попробуйте ещё раз.')
-    } finally {
-      setSmsBusy(false)
     }
   }
 
@@ -189,13 +154,9 @@ export default function RegisterCard() {
           ) : (
             <form onSubmit={verify}>
               <p className="lead" style={{ marginTop: 0 }}>
-                {sentVia === 'tg' ? (
+                {method === 'phone' ? (
                   <>
-                    Код отправлен в <strong>Telegram</strong> на номер <strong>{contact}</strong>.
-                  </>
-                ) : sentVia === 'sms' ? (
-                  <>
-                    Код отправлен по <strong>SMS</strong> на <strong>{contact}</strong>.
+                    Отправили код по <strong>SMS</strong> на <strong>{contact}</strong>.
                   </>
                 ) : (
                   <>
@@ -216,23 +177,6 @@ export default function RegisterCard() {
               <button type="submit" disabled={busy || code.length < 6}>
                 {busy ? 'Проверяем…' : 'Подтвердить'}
               </button>
-
-              {method === 'phone' && sentVia !== 'sms' && (
-                <button
-                  type="button"
-                  className="button-ghost"
-                  style={{ marginTop: 8 }}
-                  disabled={smsBusy}
-                  onClick={getSms}
-                >
-                  {smsBusy ? 'Отправляем SMS…' : 'Не пришёл в Telegram? Получить по SMS'}
-                </button>
-              )}
-              {smsSent && (
-                <p className="fine" style={{ color: '#1763ff' }}>
-                  Отправили новый код по SMS — введите его.
-                </p>
-              )}
 
               <p className="fine">
                 Не пришёл код?{' '}

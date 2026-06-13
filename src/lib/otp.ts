@@ -14,8 +14,7 @@
 import crypto from 'node:crypto'
 
 const TTL_MS = 10 * 60_000 // код живёт 10 минут
-const FRESH_COOLDOWN_MS = 60_000 // между свежими выдачами — не чаще раза в минуту
-const RESEND_COOLDOWN_MS = 15_000 // между повторами — короткий (первый повтор сразу)
+const COOLDOWN_MS = 60_000 // не чаще одной отправки в минуту (каждая SMS — деньги)
 const MAX_ATTEMPTS = 5
 const SECRET = process.env.OTP_SECRET ?? 'dev-otp-secret-change-me'
 
@@ -23,8 +22,7 @@ interface Entry {
   hash: string
   expiresAt: number
   attempts: number
-  lastSentAt: number // последняя свежая выдача
-  lastResendAt: number // последний повтор (0 — повторов не было)
+  lastSentAt: number
 }
 
 const store: Map<string, Entry> =
@@ -56,37 +54,23 @@ export function isValidContact(channel: 'email' | 'phone', value: string): boole
   return /^\+79\d{9}$/.test(value)
 }
 
-export type IssueKind = 'fresh' | 'resend'
-
-/** Сколько секунд осталось до возможности отправки (0 — можно). Кулдаун зависит от типа. */
-export function cooldownLeft(contact: string, kind: IssueKind): number {
+/** Сколько секунд осталось до возможности отправки (0 — можно). */
+export function cooldownLeft(contact: string): number {
   const e = store.get(contact)
   if (!e) return 0
-  const now = Date.now()
-  if (kind === 'fresh') {
-    const left = FRESH_COOLDOWN_MS - (now - e.lastSentAt)
-    return left > 0 ? Math.ceil(left / 1000) : 0
-  }
-  if (!e.lastResendAt) return 0 // первый повтор — сразу
-  const left = RESEND_COOLDOWN_MS - (now - e.lastResendAt)
+  const left = COOLDOWN_MS - (Date.now() - e.lastSentAt)
   return left > 0 ? Math.ceil(left / 1000) : 0
 }
 
-/**
- * Выдаёт НОВЫЙ код и возвращает его (чтобы отправить). Старый код инвалидируется.
- * Кулдаун здесь НЕ проверяется — это делает вызывающий через cooldownLeft (разные окна
- * для fresh/resend). 'fresh' сбрасывает счётчик повторов; 'resend' сохраняет lastSentAt.
- */
-export function issueCode(contact: string, kind: IssueKind = 'fresh'): string {
+/** Выдаёт НОВЫЙ код и возвращает его (чтобы отправить). Старый код инвалидируется. */
+export function issueCode(contact: string): string {
   const now = Date.now()
-  const prev = store.get(contact)
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
   store.set(contact, {
     hash: hashCode(contact, code),
     expiresAt: now + TTL_MS,
     attempts: 0,
-    lastSentAt: kind === 'fresh' ? now : (prev?.lastSentAt ?? now),
-    lastResendAt: kind === 'resend' ? now : 0,
+    lastSentAt: now,
   })
   return code
 }
