@@ -9,7 +9,9 @@ export async function GET(req: Request) {
   if (!checkAdminToken(token)) {
     return new NextResponse('unauthorized', { status: 401 })
   }
-  const res = NextResponse.redirect(new URL('/admin', req.url))
+  // Публичный origin из SITE_URL (за прокси req.url = внутренний localhost).
+  const base = process.env.SITE_URL?.replace(/\/$/, '') ?? new URL(req.url).origin
+  const res = NextResponse.redirect(`${base}/admin`)
   res.cookies.set(ADMIN_COOKIE, signAdminSession(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
