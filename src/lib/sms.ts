@@ -1,23 +1,37 @@
 /**
- * Отправка SMS с кодом. Провайдер за абстракцией — чтобы менять без правок вызовов.
+ * Доставка кода подтверждения на телефон. Два явных канала (выбор — не автоцепочка):
  *
- * Провайдеры (по приоритету ENV):
- *  - SMS.RU            — SMSRU_API_ID (РФ, дёшево, простой HTTP API)
- *  - Telegram Gateway  — TG_GATEWAY_TOKEN (ещё дешевле, но шлёт код в Telegram, не в SMS)
- *  - dev               — если ничего не настроено, печатаем код в консоль (локальный поток)
+ *  - 'tg'  — Telegram Gateway (приоритет): код приходит В TELEGRAM на номер. Дёшево (~$0.01).
+ *            env TG_GATEWAY_TOKEN.
+ *  - 'sms' — SMS.RU: обычная SMS. Дороже (~3–4 ₽). env SMSRU_API_ID.
+ *            Шлём только по кнопке «Получить по SMS», если код в Telegram не пришёл.
  *
- * Возвращает { ok } — наружу детали провайдера не утекают.
+ * Если ключа канала нет — dev-режим: печатаем код в консоль (локальный поток проходим).
  */
 
-export interface SmsResult {
+export type PhoneChannel = 'tg' | 'sms'
+
+export interface SendResult {
   ok: boolean
-  provider: 'smsru' | 'tg-gateway' | 'dev'
+  provider: 'tg-gateway' | 'smsru' | 'dev'
   error?: string
 }
 
 const MSG = (code: string) => `Весточка: код подтверждения ${code}. Действует 10 минут.`
 
-async function sendViaSmsRu(phone: string, code: string, apiId: string): Promise<SmsResult> {
+async function viaTgGateway(phone: string, code: string, token: string): Promise<SendResult> {
+  // Telegram Gateway: доставка указанного кода в Telegram-аккаунт номера (если он есть в TG).
+  const res = await fetch('https://gatewayapi.telegram.org/sendVerificationMessage', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ phone_number: phone, code }),
+  })
+  const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+  if (data?.ok) return { ok: true, provider: 'tg-gateway' }
+  return { ok: false, provider: 'tg-gateway', error: data?.error ?? `http ${res.status}` }
+}
+
+async function viaSmsRu(phone: string, code: string, apiId: string): Promise<SendResult> {
   const url = new URL('https://sms.ru/sms/send')
   url.searchParams.set('api_id', apiId)
   url.searchParams.set('to', phone.replace('+', ''))
@@ -29,40 +43,24 @@ async function sendViaSmsRu(phone: string, code: string, apiId: string): Promise
   return { ok: false, provider: 'smsru', error: data?.status_text ?? `http ${res.status}` }
 }
 
-async function sendViaTgGateway(phone: string, code: string, token: string): Promise<SmsResult> {
-  // Telegram Gateway API: отправка проверочного кода на номер (если у номера есть Telegram).
-  const res = await fetch('https://gatewayapi.telegram.org/sendVerificationMessage', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-    body: JSON.stringify({ phone_number: phone, code }),
-  })
-  const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
-  if (data?.ok) return { ok: true, provider: 'tg-gateway' }
-  return { ok: false, provider: 'tg-gateway', error: data?.error ?? `http ${res.status}` }
-}
-
-export async function sendVerificationSms(phone: string, code: string): Promise<SmsResult> {
-  const tg = process.env.TG_GATEWAY_TOKEN
-  const smsru = process.env.SMSRU_API_ID
-
-  // Стратегия «оба»: сначала дешёвый Telegram Gateway; если не вышло (номера нет в TG
-  // или провайдер ответил ошибкой) — фолбэк на обычную SMS через SMS.RU.
-  const chain: Array<() => Promise<SmsResult>> = []
-  if (tg) chain.push(() => sendViaTgGateway(phone, code, tg))
-  if (smsru) chain.push(() => sendViaSmsRu(phone, code, smsru))
-
-  let last: SmsResult | null = null
-  for (const attempt of chain) {
-    try {
-      last = await attempt()
-      if (last.ok) return last
-    } catch (e) {
-      last = { ok: false, provider: 'smsru', error: String(e) }
+/** Отправляет код на телефон выбранным каналом. */
+export async function sendPhoneCode(
+  phone: string,
+  code: string,
+  channel: PhoneChannel,
+): Promise<SendResult> {
+  try {
+    if (channel === 'tg') {
+      const token = process.env.TG_GATEWAY_TOKEN
+      if (token) return await viaTgGateway(phone, code, token)
+    } else {
+      const apiId = process.env.SMSRU_API_ID
+      if (apiId) return await viaSmsRu(phone, code, apiId)
     }
+  } catch (e) {
+    return { ok: false, provider: channel === 'tg' ? 'tg-gateway' : 'smsru', error: String(e) }
   }
-  if (last) return last
-
-  // Ничего не настроено — dev-режим: печатаем код в консоль, поток проходим локально.
-  console.log(`[sms:dev] код для ${phone}: ${code}`)
+  // Ключ канала не настроен — dev-режим.
+  console.log(`[phone:dev:${channel}] код для ${phone}: ${code}`)
   return { ok: true, provider: 'dev' }
 }

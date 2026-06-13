@@ -29,7 +29,7 @@ function n(name: string, def: number): number {
 const LIMITS = {
   ipPerHour: n('RL_IP_PER_HOUR', 5),
   ipPerDay: n('RL_IP_PER_DAY', 30),
-  contactPerDay: n('RL_CONTACT_PER_DAY', 5),
+  contactPerDay: n('RL_CONTACT_PER_DAY', 8), // запас на повторы (TG→SMS→ещё раз)
 }
 
 const HOUR = 3_600_000

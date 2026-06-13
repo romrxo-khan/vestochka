@@ -16,6 +16,7 @@ const MAX_ATTEMPTS = 5
 const SECRET = process.env.OTP_SECRET ?? 'dev-otp-secret-change-me'
 
 interface Entry {
+  code: string // открытым текстом — чтобы переслать ТОТ ЖЕ код другим каналом (TG→SMS)
   hash: string
   expiresAt: number
   attempts: number
@@ -67,8 +68,21 @@ export function issueCode(contact: string): IssueResult {
     }
   }
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
-  store.set(contact, { hash: hashCode(contact, code), expiresAt: now + TTL_MS, attempts: 0, lastSentAt: now })
+  store.set(contact, {
+    code,
+    hash: hashCode(contact, code),
+    expiresAt: now + TTL_MS,
+    attempts: 0,
+    lastSentAt: now,
+  })
   return { ok: true, code }
+}
+
+/** Возвращает действующий (не истёкший) код для контакта — чтобы переслать его другим каналом. */
+export function peekActiveCode(contact: string): string | null {
+  const e = store.get(contact)
+  if (!e || Date.now() > e.expiresAt) return null
+  return e.code
 }
 
 export type VerifyResult = { ok: true } | { ok: false; reason: 'expired' | 'mismatch' | 'too_many' }
