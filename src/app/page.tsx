@@ -96,7 +96,7 @@ export default function Home() {
           <div className="step">
             <div className="s">ШАГ 1</div>
             <h3>Регистрация</h3>
-            <p>Оставьте почту или номер телефона — подготовим ваш личный доступ.</p>
+            <p>Оставьте почту — подготовим ваш личный доступ.</p>
           </div>
           <div className="step">
             <div className="s">ШАГ 2</div>

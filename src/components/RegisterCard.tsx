@@ -3,12 +3,10 @@
 import { useState } from 'react'
 import Turnstile from './Turnstile'
 
-type Method = 'phone' | 'email'
 type Step = 'contact' | 'code' | 'done'
 
-/** Окно регистрации/входа: ввод контакта → код подтверждения → готово. */
+/** Окно регистрации/входа по ПОЧТЕ: ввод email → код подтверждения → готово. */
 export default function RegisterCard() {
-  const [method, setMethod] = useState<Method>('phone')
   const [step, setStep] = useState<Step>('contact')
   const [contact, setContact] = useState('')
   const [code, setCode] = useState('')
@@ -18,7 +16,6 @@ export default function RegisterCard() {
   const [captchaReset, setCaptchaReset] = useState(0)
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
-  const labelFor = method === 'phone' ? 'номер телефона' : 'почту'
 
   async function sendCode(e?: React.FormEvent) {
     e?.preventDefault()
@@ -28,7 +25,7 @@ export default function RegisterCard() {
       const res = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ channel: method, contact, captchaToken }),
+        body: JSON.stringify({ channel: 'email', contact, captchaToken }),
       })
       const data = await res.json()
       // Токен капчи одноразовый — после запроса сбрасываем виджет на свежий.
@@ -39,11 +36,8 @@ export default function RegisterCard() {
           setError('Слишком много запросов. Попробуйте позже.')
         else if (data.error === 'captcha_failed')
           setError('Не удалось пройти проверку. Обновите страницу и попробуйте снова.')
-        else if (data.error === 'phone_not_ru')
-          setError('Принимаем только российские номера (+7 9XX…). Иностранный номер? Зарегистрируйтесь по почте.')
-        else if (data.error === 'invalid_contact') setError(`Проверьте ${labelFor}.`)
-        else if (data.error === 'sms_failed' || data.error === 'send_failed')
-          setError('Не удалось отправить код. Попробуйте ещё раз.')
+        else if (data.error === 'invalid_contact') setError('Проверьте адрес почты.')
+        else if (data.error === 'send_failed') setError('Не удалось отправить код. Попробуйте ещё раз.')
         else setError('Что-то пошло не так. Попробуйте ещё раз.')
         return
       }
@@ -63,7 +57,7 @@ export default function RegisterCard() {
       const res = await fetch('/api/auth/verify-code', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ channel: method, contact, code }),
+        body: JSON.stringify({ channel: 'email', contact, code }),
       })
       const data = await res.json()
       if (!res.ok || !data.ok) {
@@ -90,79 +84,34 @@ export default function RegisterCard() {
 
       {step === 'done' ? (
         <p className="lead">
-          Контакт подтверждён ✅ <strong>Готовим ваш доступ к MAX.</strong> Следующий шаг — вход в
+          Почта подтверждена ✅ <strong>Готовим ваш доступ к MAX.</strong> Следующий шаг — вход в
           MAX по номеру и SMS. Мы свяжемся с вами здесь же.
         </p>
       ) : (
         <>
           <p className="lead">
-            Телефон или почта — и MAX у вас в Telegram. <strong>Первая неделя бесплатно.</strong>
+            Оставьте почту — и MAX у вас в Telegram. <strong>Первая неделя бесплатно.</strong>
           </p>
 
           {step === 'contact' ? (
-            <>
-              <div className="seg">
-                <button
-                  type="button"
-                  className={method === 'phone' ? 'on' : ''}
-                  onClick={() => {
-                    setMethod('phone')
-                    setError('')
-                  }}
-                >
-                  По телефону
-                </button>
-                <button
-                  type="button"
-                  className={method === 'email' ? 'on' : ''}
-                  onClick={() => {
-                    setMethod('email')
-                    setError('')
-                  }}
-                >
-                  По почте
-                </button>
-              </div>
-
-              <form onSubmit={sendCode}>
-                {method === 'phone' ? (
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="Российский номер, +7 9XX…"
-                    autoComplete="tel"
-                    inputMode="tel"
-                    value={contact}
-                    onChange={(e) => setContact(e.target.value)}
-                  />
-                ) : (
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Электронная почта"
-                    autoComplete="email"
-                    value={contact}
-                    onChange={(e) => setContact(e.target.value)}
-                  />
-                )}
-                <Turnstile onToken={setCaptchaToken} resetSignal={captchaReset} />
-                <button type="submit" disabled={busy || !contact || (captchaOn && !captchaToken)}>
-                  {busy ? 'Отправляем…' : 'Получить код'}
-                </button>
-              </form>
-            </>
+            <form onSubmit={sendCode}>
+              <input
+                type="email"
+                name="email"
+                placeholder="Электронная почта"
+                autoComplete="email"
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+              />
+              <Turnstile onToken={setCaptchaToken} resetSignal={captchaReset} />
+              <button type="submit" disabled={busy || !contact || (captchaOn && !captchaToken)}>
+                {busy ? 'Отправляем…' : 'Получить код'}
+              </button>
+            </form>
           ) : (
             <form onSubmit={verify}>
               <p className="lead" style={{ marginTop: 0 }}>
-                {method === 'phone' ? (
-                  <>
-                    Отправили код по <strong>SMS</strong> на <strong>{contact}</strong>.
-                  </>
-                ) : (
-                  <>
-                    Отправили код на <strong>{contact}</strong>.
-                  </>
-                )}
+                Отправили код на <strong>{contact}</strong>.
               </p>
               <input
                 type="text"
@@ -201,7 +150,7 @@ export default function RegisterCard() {
                     setError('')
                   }}
                 >
-                  Изменить контакт
+                  Изменить почту
                 </a>
               </p>
             </form>
