@@ -3,12 +3,13 @@ import { issueCode, isValidContact, normalizeContact } from '@/lib/otp'
 import { sendVerificationEmail } from '@/lib/email'
 import { sendVerificationSms } from '@/lib/sms'
 import { guardSendCode, clientIp } from '@/lib/ratelimit'
+import { verifyTurnstile } from '@/lib/turnstile'
 
 export const runtime = 'nodejs'
 
-/** POST { channel: 'email'|'phone', contact: string } → отправляет код подтверждения. */
+/** POST { channel: 'email'|'phone', contact: string, captchaToken?: string } → отправляет код. */
 export async function POST(req: Request) {
-  let body: { channel?: string; contact?: string }
+  let body: { channel?: string; contact?: string; captchaToken?: string }
   try {
     body = await req.json()
   } catch {
@@ -27,8 +28,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error }, { status: 400 })
   }
 
+  // Капча: бот без валидного токена дальше не проходит (если Turnstile включён).
+  const ip = clientIp(req)
+  if (!(await verifyTurnstile(body.captchaToken, ip))) {
+    return NextResponse.json({ ok: false, error: 'captcha_failed' }, { status: 403 })
+  }
+
   // Антиспам/антискрутка: лимиты по IP, по контакту и глобальный потолок трат.
-  const guard = guardSendCode({ ip: clientIp(req), contact, channel })
+  const guard = guardSendCode({ ip, contact, channel })
   if (!guard.ok) {
     return NextResponse.json(
       { ok: false, error: 'rate_limited', retryAfterSec: guard.retryAfterSec },

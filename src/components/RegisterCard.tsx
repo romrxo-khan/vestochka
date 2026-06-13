@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Turnstile from './Turnstile'
 
 type Method = 'phone' | 'email'
 type Step = 'contact' | 'code' | 'done'
@@ -13,7 +14,10 @@ export default function RegisterCard() {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaReset, setCaptchaReset] = useState(0)
 
+  const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const labelFor = method === 'phone' ? 'номер телефона' : 'почту'
 
   async function sendCode(e?: React.FormEvent) {
@@ -24,13 +28,17 @@ export default function RegisterCard() {
       const res = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ channel: method, contact }),
+        body: JSON.stringify({ channel: method, contact, captchaToken }),
       })
       const data = await res.json()
+      // Токен капчи одноразовый — после запроса сбрасываем виджет на свежий.
+      if (captchaOn) setCaptchaReset((x) => x + 1)
       if (!res.ok || !data.ok) {
         if (data.error === 'cooldown') setError(`Подождите ${data.retryAfterSec} c и попробуйте снова.`)
         else if (data.error === 'rate_limited')
           setError('Слишком много запросов. Попробуйте позже.')
+        else if (data.error === 'captcha_failed')
+          setError('Не удалось пройти проверку. Обновите страницу и попробуйте снова.')
         else if (data.error === 'phone_not_ru')
           setError('Принимаем только российские номера (+7 9XX…). Иностранный номер? Зарегистрируйтесь по почте.')
         else if (data.error === 'invalid_contact') setError(`Проверьте ${labelFor}.`)
@@ -137,7 +145,8 @@ export default function RegisterCard() {
                     onChange={(e) => setContact(e.target.value)}
                   />
                 )}
-                <button type="submit" disabled={busy || !contact}>
+                <Turnstile onToken={setCaptchaToken} resetSignal={captchaReset} />
+                <button type="submit" disabled={busy || !contact || (captchaOn && !captchaToken)}>
                   {busy ? 'Отправляем…' : 'Получить код'}
                 </button>
               </form>

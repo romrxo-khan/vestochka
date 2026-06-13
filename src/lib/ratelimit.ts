@@ -30,8 +30,6 @@ const LIMITS = {
   ipPerHour: n('RL_IP_PER_HOUR', 5),
   ipPerDay: n('RL_IP_PER_DAY', 30),
   contactPerDay: n('RL_CONTACT_PER_DAY', 5),
-  smsGlobalPerDay: n('RL_SMS_GLOBAL_PER_DAY', 300), // жёсткий потолок трат на SMS/сутки
-  emailGlobalPerDay: n('RL_EMAIL_GLOBAL_PER_DAY', 1000),
 }
 
 const HOUR = 3_600_000
@@ -65,26 +63,19 @@ export function guardSendCode(params: {
   contact: string
   channel: 'email' | 'phone'
 }): GuardResult {
-  const { ip, contact, channel } = params
-  const globalKey = channel === 'phone' ? 'global:sms' : 'global:email'
-  const globalLimit = channel === 'phone' ? LIMITS.smsGlobalPerDay : LIMITS.emailGlobalPerDay
+  const { ip, contact } = params
 
+  // Одинаковые правила для email и телефона: лимит по IP (час/сутки) + по контакту (сутки).
   const checks: Array<{ key: string; limit: number; window: number }> = [
     { key: `ipH:${ip}`, limit: LIMITS.ipPerHour, window: HOUR },
     { key: `ipD:${ip}`, limit: LIMITS.ipPerDay, window: DAY },
     { key: `c:${contact}`, limit: LIMITS.contactPerDay, window: DAY },
-    { key: globalKey, limit: globalLimit, window: DAY },
   ]
 
   // 1) Сначала только проверяем — чтобы не списать один счётчик, когда падает другой.
   for (const c of checks) {
     const r = peek(c.key, c.limit)
-    if (!r.ok) {
-      if (c.key === globalKey) {
-        console.error(`[ratelimit] ГЛОБАЛЬНЫЙ потолок ${globalKey} достигнут — отправка кодов остановлена`)
-      }
-      return { ok: false, retryAfterSec: r.retryAfterSec }
-    }
+    if (!r.ok) return { ok: false, retryAfterSec: r.retryAfterSec }
   }
   // 2) Всё ок — списываем все окна.
   for (const c of checks) bump(c.key, c.window)
