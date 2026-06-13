@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyCode, isValidContact, normalizeContact } from '@/lib/otp'
+import { registerUser } from '@/lib/control-plane'
 
 export const runtime = 'nodejs'
 
@@ -27,7 +28,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: result.reason }, { status: 401 })
   }
 
-  // TODO (следующий шаг): создать пользователя в control-plane (createUser + триал),
-  // выдать ссылку t.me/<bot>?start=<token> и/или сессию. Пока — подтверждаем контакт.
-  return NextResponse.json({ ok: true, contact, channel })
+  // Контакт подтверждён → создаём пользователя в control-plane и стартуем недельный триал.
+  // Best-effort: сбой control-plane не блокирует подтверждение (логируем для ретрая позже).
+  const reg = await registerUser(channel === 'email' ? { email: contact } : { phone: contact })
+  if (!reg.ok) {
+    console.error('[verify-code] регистрация в control-plane не удалась:', reg.error)
+  }
+
+  return NextResponse.json({
+    ok: true,
+    contact,
+    channel,
+    trial: reg.ok && !reg.skipped ? { daysRemaining: reg.daysRemaining, isNew: reg.isNew } : null,
+  })
 }

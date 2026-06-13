@@ -14,6 +14,7 @@ export default function RegisterCard() {
   const [error, setError] = useState('')
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaReset, setCaptchaReset] = useState(0)
+  const [trialDays, setTrialDays] = useState<number | null>(null)
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
 
@@ -67,6 +68,7 @@ export default function RegisterCard() {
         else setError('Не удалось подтвердить код.')
         return
       }
+      if (typeof data.trial?.daysRemaining === 'number') setTrialDays(data.trial.daysRemaining)
       setStep('done')
     } catch {
       setError('Нет связи с сервером. Попробуйте ещё раз.')
@@ -84,8 +86,12 @@ export default function RegisterCard() {
 
       {step === 'done' ? (
         <p className="lead">
-          Почта подтверждена ✅ <strong>Готовим ваш доступ к MAX.</strong> Следующий шаг — вход в
-          MAX по номеру и SMS. Мы свяжемся с вами здесь же.
+          Почта подтверждена ✅{' '}
+          <strong>
+            Бесплатная неделя активна{typeof trialDays === 'number' ? ` — осталось ${trialDays} дн.` : ''}.
+          </strong>{' '}
+          Готовим ваш доступ к MAX: следующий шаг — вход в MAX по номеру и SMS, мы свяжемся с вами
+          здесь же.
         </p>
       ) : (
         <>
