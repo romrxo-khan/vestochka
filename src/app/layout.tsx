@@ -17,7 +17,6 @@ export const metadata: Metadata = {
   title: 'Весточка — MAX в вашем Telegram',
   description: DESCRIPTION,
   alternates: { canonical: '/' },
-  other: { '1plat': '2011' }, // верификация магазина 1plat (RU-эквайринг)
   openGraph: {
     title: 'Весточка — MAX в вашем Telegram',
     description: DESCRIPTION,
