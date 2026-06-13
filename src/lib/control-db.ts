@@ -119,6 +119,12 @@ export class ControlDb {
       .get(customerId) as unknown as User | undefined
   }
 
+  byProviderSubscription(subId: string): User | undefined {
+    return this.db
+      .prepare(`SELECT * FROM users WHERE provider_subscription_id = ? LIMIT 1`)
+      .get(subId) as unknown as User | undefined
+  }
+
   byMaxPhone(phone: string): User | undefined {
     return this.db.prepare(`SELECT * FROM users WHERE max_phone = ? LIMIT 1`).get(phone) as
       | unknown

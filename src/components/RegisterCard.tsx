@@ -19,6 +19,31 @@ export default function RegisterCard() {
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const stripeOn = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  const lavaOn = Boolean(process.env.NEXT_PUBLIC_LAVA_ENABLED)
+  const payOn = stripeOn || lavaOn
+
+  // Оплата российской картой — Lava.top: создаёт счёт и редиректит на оплату.
+  async function startLava() {
+    setError('')
+    setCheckoutBusy(true)
+    try {
+      const res = await fetch('/api/payments/lava/checkout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: contact, plan: 'shared' }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok || !data.url) {
+        setError('Не удалось открыть оплату. Попробуйте ещё раз.')
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      setError('Нет связи с сервером. Попробуйте ещё раз.')
+    } finally {
+      setCheckoutBusy(false)
+    }
+  }
 
   // «Привязать карту»: Stripe Checkout (подписка, неделя триала). Редирект на страницу Stripe.
   async function startCheckout() {
@@ -110,34 +135,45 @@ export default function RegisterCard() {
       <div className="head">Регистрация</div>
 
       {step === 'done' ? (
-        stripeOn ? (
+        payOn ? (
           <>
             <p className="lead">
-              Почта подтверждена ✅ Остался один шаг — привяжите карту, и{' '}
-              <strong>первая неделя бесплатно</strong>.
+              Почта подтверждена ✅ Остался один шаг — оформите подписку и пользуйтесь MAX из
+              Telegram.
             </p>
-            <button type="button" className="pay-btn" onClick={startCheckout} disabled={checkoutBusy}>
-              <span className="pay-btn-title">
-                {checkoutBusy ? 'Открываем оплату…' : 'Привязать карту'}
-              </span>
-              {!checkoutBusy && <span className="pay-btn-sub">Первая неделя — бесплатно</span>}
-            </button>
+            {lavaOn && (
+              <button type="button" className="pay-btn" onClick={startLava} disabled={checkoutBusy}>
+                <span className="pay-btn-title">
+                  {checkoutBusy ? 'Открываем оплату…' : 'Оплатить российской картой'}
+                </span>
+                {!checkoutBusy && <span className="pay-btn-sub">карты РФ · МИР, Visa, Mastercard</span>}
+              </button>
+            )}
+            {stripeOn && (
+              <button
+                type="button"
+                className={lavaOn ? 'pay-btn alt' : 'pay-btn'}
+                onClick={startCheckout}
+                disabled={checkoutBusy}
+              >
+                <span className="pay-btn-title">
+                  {lavaOn ? 'Зарубежная карта' : 'Привязать карту'}
+                </span>
+                {!checkoutBusy && (
+                  <span className="pay-btn-sub">
+                    {lavaOn ? 'Stripe · первая неделя бесплатно' : 'Первая неделя — бесплатно'}
+                  </span>
+                )}
+              </button>
+            )}
             <ul className="pay-points">
               <li>
                 <span>🔒</span>
-                <span>
-                  Оплата через <b>Stripe</b> — данные карты к нам не попадают.
-                </span>
-              </li>
-              <li>
-                <span>🎁</span>
-                <span>
-                  <b>0&nbsp;₽</b> 7 дней. Спишется только если не отмените.
-                </span>
+                <span>Оплата на стороне платёжной системы — данные карты к нам не попадают.</span>
               </li>
               <li>
                 <span>✕</span>
-                <span>Отменить можно в любой момент в один клик.</span>
+                <span>Отменить подписку можно в любой момент.</span>
               </li>
             </ul>
           </>

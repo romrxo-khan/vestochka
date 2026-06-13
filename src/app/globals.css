@@ -150,6 +150,15 @@ form button:hover { background: var(--blue-deep); }
 .pay-btn:hover { background: var(--blue-deep); box-shadow: 0 12px 32px rgba(23, 99, 255, 0.48); }
 .pay-btn:active { transform: translateY(1px); }
 .pay-btn:disabled { opacity: 0.6; cursor: default; box-shadow: none; }
+.pay-btn.alt {
+  margin-top: 10px;
+  background: transparent;
+  border: 1px solid #2a3a55;
+  box-shadow: none;
+  color: #cdd8ea;
+}
+.pay-btn.alt:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--blue); box-shadow: none; }
+.pay-btn.alt .pay-btn-sub { color: #8b98ad; }
 .pay-btn-title { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
 .pay-btn-sub { font-size: 12.5px; font-weight: 600; color: rgba(255, 255, 255, 0.82); }
 .pay-points { list-style: none; margin: 20px 0 0; padding: 0; max-width: 580px; display: grid; gap: 10px; }
