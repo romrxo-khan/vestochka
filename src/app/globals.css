@@ -138,6 +138,25 @@ form button {
 form button:hover { background: var(--blue-deep); }
 .fine { font-size: 13px; color: #7e8ba3; margin-top: 16px; max-width: 520px; }
 
+/* экран привязки карты (после подтверждения почты) */
+.pay-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 100%; max-width: 580px; margin-top: 24px;
+  background: var(--blue); color: #fff; border: none;
+  padding: 16px 24px; border-radius: 13px; cursor: pointer; font-family: inherit;
+  box-shadow: 0 10px 28px rgba(23, 99, 255, 0.38);
+  transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+}
+.pay-btn:hover { background: var(--blue-deep); box-shadow: 0 12px 32px rgba(23, 99, 255, 0.48); }
+.pay-btn:active { transform: translateY(1px); }
+.pay-btn:disabled { opacity: 0.6; cursor: default; box-shadow: none; }
+.pay-btn-title { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.pay-btn-sub { font-size: 12.5px; font-weight: 600; color: rgba(255, 255, 255, 0.82); }
+.pay-points { list-style: none; margin: 20px 0 0; padding: 0; max-width: 580px; display: grid; gap: 10px; }
+.pay-points li { display: flex; gap: 10px; font-size: 13.5px; color: #aebbcf; line-height: 1.4; }
+.pay-points li > span:first-child { flex: 0 0 18px; text-align: center; opacity: 0.9; }
+.pay-points li b { color: #fff; font-weight: 600; }
+
 /* способ авторизации: сегмент-переключатель (React-состояние) */
 .seg { display: inline-flex; gap: 3px; margin-top: 22px; padding: 3px; background: rgba(255, 255, 255, 0.06); border: 1px solid #2a3a55; border-radius: 12px; }
 .seg button { padding: 11px 20px; border-radius: 9px; font-size: 14px; font-weight: 600; color: #aebbcf; cursor: pointer; user-select: none; background: none; border: none; font-family: inherit; }

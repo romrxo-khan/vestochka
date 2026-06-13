@@ -27,7 +27,14 @@ export async function POST(req: Request) {
 
   // Пользователь уже создан на verify-code; берём его id для связи с подпиской.
   const user = getDb().byEmailOrPhone(email)
-  const origin = new URL(req.url).origin
+
+  // ПУБЛИЧНЫЙ origin: за Cloudflare/Traefik req.url видит внутренний localhost — нельзя.
+  // Берём из SITE_URL, иначе из x-forwarded-* заголовков, иначе как fallback.
+  const fwdHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host')
+  const fwdProto = req.headers.get('x-forwarded-proto') ?? 'https'
+  const origin =
+    process.env.SITE_URL?.replace(/\/$/, '') ??
+    (fwdHost ? `${fwdProto}://${fwdHost}` : new URL(req.url).origin)
 
   try {
     const session = await getStripe().checkout.sessions.create({

@@ -110,35 +110,52 @@ export default function RegisterCard() {
       <div className="head">Регистрация</div>
 
       {step === 'done' ? (
-        <>
+        stripeOn ? (
+          <>
+            <p className="lead">
+              Почта подтверждена ✅ Остался один шаг — привяжите карту, и{' '}
+              <strong>первая неделя бесплатно</strong>.
+            </p>
+            <button type="button" className="pay-btn" onClick={startCheckout} disabled={checkoutBusy}>
+              <span className="pay-btn-title">
+                {checkoutBusy ? 'Открываем оплату…' : 'Привязать карту'}
+              </span>
+              {!checkoutBusy && <span className="pay-btn-sub">Первая неделя — бесплатно</span>}
+            </button>
+            <ul className="pay-points">
+              <li>
+                <span>🔒</span>
+                <span>
+                  Оплата через <b>Stripe</b> — данные карты к нам не попадают.
+                </span>
+              </li>
+              <li>
+                <span>🎁</span>
+                <span>
+                  <b>0&nbsp;₽</b> 7 дней. Спишется только если не отмените.
+                </span>
+              </li>
+              <li>
+                <span>✕</span>
+                <span>Отменить можно в любой момент в один клик.</span>
+              </li>
+            </ul>
+          </>
+        ) : (
           <p className="lead">
             Почта подтверждена ✅{' '}
-            {stripeOn ? (
-              <>
-                Привяжите карту — и <strong>первая неделя бесплатно</strong>. Списания не будет
-                7 дней, отменить можно в любой момент.
-              </>
-            ) : (
-              <>
-                <strong>
-                  Бесплатная неделя активна
-                  {typeof trialDays === 'number' ? ` — осталось ${trialDays} дн.` : ''}.
-                </strong>{' '}
-                Готовим ваш доступ к MAX: следующий шаг — вход в MAX по номеру и SMS, мы свяжемся с
-                вами здесь же.
-              </>
-            )}
+            <strong>
+              Бесплатная неделя активна
+              {typeof trialDays === 'number' ? ` — осталось ${trialDays} дн.` : ''}.
+            </strong>{' '}
+            Готовим ваш доступ к MAX: следующий шаг — вход в MAX по номеру и SMS, мы свяжемся с вами
+            здесь же.
           </p>
-          {stripeOn && (
-            <button type="button" onClick={startCheckout} disabled={checkoutBusy}>
-              {checkoutBusy ? 'Открываем оплату…' : 'Привязать карту · неделя бесплатно'}
-            </button>
-          )}
-        </>
+        )
       ) : (
         <>
           <p className="lead">
-            Оставьте почту — и MAX у вас в Telegram. <strong>Первая неделя бесплатно.</strong>
+            Введите почту — и MAX у вас в Telegram. <strong>Первая неделя бесплатно.</strong>
           </p>
 
           {step === 'contact' ? (
