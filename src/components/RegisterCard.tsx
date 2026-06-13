@@ -98,9 +98,12 @@ export default function RegisterCard() {
       })
       const data = await res.json()
       if (!res.ok || !data.ok) {
-        if (data.error === 'expired') setError('Код истёк. Запросите новый.')
+        if (data.error === 'cooldown')
+          setError(`Подождите ${data.retryAfterSec} c перед повторной отправкой.`)
         else if (data.error === 'rate_limited') setError('Слишком много запросов. Попробуйте позже.')
         else if (data.error === 'sms_failed') setError('Не удалось отправить SMS. Попробуйте ещё раз.')
+        else if (data.error === 'captcha_failed')
+          setError('Сессия истекла. Нажмите «Изменить контакт» и начните заново.')
         else setError('Не удалось отправить SMS.')
         return
       }
@@ -227,7 +230,7 @@ export default function RegisterCard() {
               )}
               {smsSent && (
                 <p className="fine" style={{ color: '#1763ff' }}>
-                  Отправили тот же код по SMS.
+                  Отправили новый код по SMS — введите его.
                 </p>
               )}
 

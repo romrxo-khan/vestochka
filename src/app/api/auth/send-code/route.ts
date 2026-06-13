@@ -1,24 +1,25 @@
-import { NextResponse } from 'next/server'
-import { issueCode, peekActiveCode, isValidContact, normalizeContact } from '@/lib/otp'
+import { NextRequest, NextResponse } from 'next/server'
+import { issueCode, cooldownLeft, isValidContact, normalizeContact } from '@/lib/otp'
 import { sendVerificationEmail } from '@/lib/email'
 import { sendPhoneCode } from '@/lib/sms'
 import { guardSendCode, clientIp } from '@/lib/ratelimit'
 import { verifyTurnstile } from '@/lib/turnstile'
+import { REG_COOKIE, signSession, verifySession } from '@/lib/reg-session'
 
 export const runtime = 'nodejs'
 
 /**
  * POST { channel, contact, via?, captchaToken? } → отправляет код.
- *  - channel: 'email' | 'phone'
- *  - via (только phone): 'tg' (по умолчанию — код в Telegram) | 'sms' (кнопка «Получить по SMS»)
  *
- * Две ветки:
- *  1) СВЕЖАЯ выдача (активного кода ещё нет): капча + кулдаун + новый код. Телефон → Telegram.
- *  2) ПОВТОР существующего кода (активный код есть: «Отправить заново» / «Получить по SMS»):
- *     тот же код другим/тем же каналом, БЕЗ капчи и кулдауна (юзер их уже прошёл),
- *     но под лимитами IP/контакта (guardSendCode).
+ * Две ветки, выбор по наличию валидной reg-сессии (куки) на этот контакт:
+ *  • СВЕЖАЯ выдача (сессии нет): капча + кулдаун(60с). Телефон → всегда Telegram; via=sms тут
+ *    игнорируется, чтобы эндпоинт не стал оракулом регистрации. Ставим reg-куку.
+ *  • ПОВТОР (сессия есть — «Отправить заново»/«Получить по SMS»): без капчи, кулдаун повтора
+ *    (15с, первый повтор сразу). Новый код, доставка выбранным каналом (tg/sms/email).
+ *
+ * Каждый успешный ответ — одинаковой формы {ok:true}, без раскрытия деталей доставки.
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   let body: { channel?: string; contact?: string; via?: string; captchaToken?: string }
   try {
     body = await req.json()
@@ -38,17 +39,25 @@ export async function POST(req: Request) {
   }
 
   const ip = clientIp(req)
-  // Канал доставки: email → email; phone → Telegram по умолчанию, SMS по кнопке.
-  const deliverVia: 'tg' | 'sms' | 'email' =
-    channel === 'email' ? 'email' : body.via === 'sms' ? 'sms' : 'tg'
+  const isResend = verifySession(req.cookies.get(REG_COOKIE)?.value, contact)
 
-  const rateLimited = () => {
+  // Канал доставки. На свежей выдаче via=sms НЕ даём (SMS — только повтор по кнопке).
+  const deliverVia: 'tg' | 'sms' | 'email' =
+    channel === 'email' ? 'email' : isResend && body.via === 'sms' ? 'sms' : 'tg'
+
+  const tooMany = () => {
     const guard = guardSendCode({ ip, contact, channel })
     if (guard.ok) return null
     return NextResponse.json(
       { ok: false, error: 'rate_limited', retryAfterSec: guard.retryAfterSec },
       { status: 429, headers: { 'retry-after': String(guard.retryAfterSec) } },
     )
+  }
+
+  const onCooldown = (kind: 'fresh' | 'resend') => {
+    const left = cooldownLeft(contact, kind)
+    if (left <= 0) return null
+    return NextResponse.json({ ok: false, error: 'cooldown', retryAfterSec: left }, { status: 429 })
   }
 
   async function deliver(code: string): Promise<NextResponse | null> {
@@ -69,38 +78,29 @@ export async function POST(req: Request) {
     return null
   }
 
-  // === Ветка 2: повтор существующего кода (без капчи/кулдауна). ===
-  const active = peekActiveCode(contact)
-  if (active) {
-    const limited = rateLimited()
-    if (limited) return limited
-    const failed = await deliver(active)
-    if (failed) return failed
-    return NextResponse.json({ ok: true, contact, via: deliverVia })
+  const ok = () => {
+    const res = NextResponse.json({ ok: true, contact, via: deliverVia })
+    // Обновляем/ставим reg-сессию (привязка повторов к этому браузеру).
+    res.cookies.set(REG_COOKIE, signSession(contact), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 15 * 60,
+    })
+    return res
   }
 
-  // Если просили SMS, а активного кода нет (истёк) — просим начать заново.
-  if (channel === 'phone' && body.via === 'sms') {
-    return NextResponse.json({ ok: false, error: 'expired' }, { status: 410 })
-  }
-
-  // === Ветка 1: свежая выдача — капча + кулдаун + новый код. ===
-  if (!(await verifyTurnstile(body.captchaToken, ip))) {
-    return NextResponse.json({ ok: false, error: 'captcha_failed' }, { status: 403 })
-  }
-
-  const limited = rateLimited()
-  if (limited) return limited
-
-  const issued = issueCode(contact)
-  if (!issued.ok) {
-    return NextResponse.json(
-      { ok: false, error: 'cooldown', retryAfterSec: issued.retryAfterSec },
-      { status: 429 },
+  // === ПОВТОР (есть валидная сессия): без капчи, но с кулдауном повтора. ===
+  if (isResend) {
+    return (
+      tooMany() ?? onCooldown('resend') ?? (await deliver(issueCode(contact, 'resend'))) ?? ok()
     )
   }
 
-  const failed = await deliver(issued.code)
-  if (failed) return failed
-  return NextResponse.json({ ok: true, contact, via: deliverVia })
+  // === СВЕЖАЯ выдача: капча обязательна (закрывает и оракул, и обход капчи). ===
+  if (!(await verifyTurnstile(body.captchaToken, ip))) {
+    return NextResponse.json({ ok: false, error: 'captcha_failed' }, { status: 403 })
+  }
+  return tooMany() ?? onCooldown('fresh') ?? (await deliver(issueCode(contact, 'fresh'))) ?? ok()
 }

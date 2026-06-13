@@ -2,8 +2,11 @@
  * Одноразовые коды (OTP) для регистрации/входа по email или телефону.
  *
  * Хранилище — in-memory с TTL, закэшировано на globalThis (переживает hot-reload в dev
- * и живёт в одном процессе `next start`). Храним ХЭШ кода, не сам код. Лимит попыток и
- * кулдаун на повторную отправку — защита от подбора и спама.
+ * и живёт в одном процессе `next start`). Храним только ХЭШ кода (не сам код). Лимит попыток
+ * и кулдауны (отдельно на свежую выдачу и на повтор) — защита от подбора и скрутки.
+ *
+ * «Повтор» (кнопка SMS / «отправить заново») ВСЕГДА выдаёт НОВЫЙ код — поэтому plaintext
+ * хранить не нужно, а старый код инвалидируется.
  *
  * Для нескольких инстансов сайта позже заменим Map на общий стор (Redis/таблицу) — интерфейс
  * (issueCode/verifyCode) останется тем же.
@@ -11,16 +14,17 @@
 import crypto from 'node:crypto'
 
 const TTL_MS = 10 * 60_000 // код живёт 10 минут
-const RESEND_COOLDOWN_MS = 60_000 // не чаще раза в минуту
+const FRESH_COOLDOWN_MS = 60_000 // между свежими выдачами — не чаще раза в минуту
+const RESEND_COOLDOWN_MS = 15_000 // между повторами — короткий (первый повтор сразу)
 const MAX_ATTEMPTS = 5
 const SECRET = process.env.OTP_SECRET ?? 'dev-otp-secret-change-me'
 
 interface Entry {
-  code: string // открытым текстом — чтобы переслать ТОТ ЖЕ код другим каналом (TG→SMS)
   hash: string
   expiresAt: number
   attempts: number
-  lastSentAt: number
+  lastSentAt: number // последняя свежая выдача
+  lastResendAt: number // последний повтор (0 — повторов не было)
 }
 
 const store: Map<string, Entry> =
@@ -52,37 +56,39 @@ export function isValidContact(channel: 'email' | 'phone', value: string): boole
   return /^\+79\d{9}$/.test(value)
 }
 
-export type IssueResult =
-  | { ok: true; code: string }
-  | { ok: false; reason: 'cooldown'; retryAfterSec: number }
+export type IssueKind = 'fresh' | 'resend'
 
-/** Выдаёт новый код (или отказывает, если кулдаун). Код возвращается, чтобы отправить его. */
-export function issueCode(contact: string): IssueResult {
+/** Сколько секунд осталось до возможности отправки (0 — можно). Кулдаун зависит от типа. */
+export function cooldownLeft(contact: string, kind: IssueKind): number {
+  const e = store.get(contact)
+  if (!e) return 0
   const now = Date.now()
-  const existing = store.get(contact)
-  if (existing && now - existing.lastSentAt < RESEND_COOLDOWN_MS) {
-    return {
-      ok: false,
-      reason: 'cooldown',
-      retryAfterSec: Math.ceil((RESEND_COOLDOWN_MS - (now - existing.lastSentAt)) / 1000),
-    }
+  if (kind === 'fresh') {
+    const left = FRESH_COOLDOWN_MS - (now - e.lastSentAt)
+    return left > 0 ? Math.ceil(left / 1000) : 0
   }
+  if (!e.lastResendAt) return 0 // первый повтор — сразу
+  const left = RESEND_COOLDOWN_MS - (now - e.lastResendAt)
+  return left > 0 ? Math.ceil(left / 1000) : 0
+}
+
+/**
+ * Выдаёт НОВЫЙ код и возвращает его (чтобы отправить). Старый код инвалидируется.
+ * Кулдаун здесь НЕ проверяется — это делает вызывающий через cooldownLeft (разные окна
+ * для fresh/resend). 'fresh' сбрасывает счётчик повторов; 'resend' сохраняет lastSentAt.
+ */
+export function issueCode(contact: string, kind: IssueKind = 'fresh'): string {
+  const now = Date.now()
+  const prev = store.get(contact)
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
   store.set(contact, {
-    code,
     hash: hashCode(contact, code),
     expiresAt: now + TTL_MS,
     attempts: 0,
-    lastSentAt: now,
+    lastSentAt: kind === 'fresh' ? now : (prev?.lastSentAt ?? now),
+    lastResendAt: kind === 'resend' ? now : 0,
   })
-  return { ok: true, code }
-}
-
-/** Возвращает действующий (не истёкший) код для контакта — чтобы переслать его другим каналом. */
-export function peekActiveCode(contact: string): string | null {
-  const e = store.get(contact)
-  if (!e || Date.now() > e.expiresAt) return null
-  return e.code
+  return code
 }
 
 export type VerifyResult = { ok: true } | { ok: false; reason: 'expired' | 'mismatch' | 'too_many' }
