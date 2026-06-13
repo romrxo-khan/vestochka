@@ -138,8 +138,8 @@ export default function RegisterCard() {
         payOn ? (
           <>
             <p className="lead">
-              Почта подтверждена ✅ Остался один шаг — оформите подписку и пользуйтесь MAX из
-              Telegram.
+              Почта подтверждена ✅ <strong>Бесплатная неделя активна!</strong> Оформить подписку
+              можно сейчас или позже — напомним перед окончанием.
             </p>
             {lavaOn && (
               <button type="button" className="pay-btn" onClick={startLava} disabled={checkoutBusy}>

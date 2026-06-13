@@ -36,3 +36,47 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
     text: `Весточка. Код подтверждения: ${code}. Действует 10 минут.`,
   })
 }
+
+const SITE = process.env.SITE_URL ?? 'https://vestochka.uk'
+
+function wrap(inner: string): string {
+  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:460px;margin:0 auto;color:#0f1b2d">
+    <h1 style="font-size:20px;margin:0 0 14px">Весточка</h1>${inner}
+    <a href="${SITE}/cabinet" style="display:inline-block;margin-top:18px;background:#1763ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700">Оформить подписку</a>
+    <p style="font-size:12px;color:#8a98ad;margin-top:20px">Весточка — MAX в вашем Telegram.</p>
+  </div>`
+}
+
+async function send(to: string, subject: string, html: string, text: string): Promise<void> {
+  const resend = getResend()
+  if (!resend) {
+    console.log(`[email:dev] -> ${to}: ${subject}`)
+    return
+  }
+  await resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+/** Напоминание: триал скоро закончится. */
+export async function sendTrialEndingEmail(to: string, daysLeft: number): Promise<void> {
+  const d = daysLeft === 1 ? '1 день' : `${daysLeft} дня`
+  await send(
+    to,
+    `Бесплатная неделя заканчивается через ${d}`,
+    wrap(
+      `<p style="font-size:15px;color:#33415c">Ваша бесплатная неделя в Весточке заканчивается через <b>${d}</b>. Чтобы сообщения из MAX продолжали приходить в Telegram, оформите подписку.</p>`,
+    ),
+    `Бесплатная неделя заканчивается через ${d}. Оформите подписку: ${SITE}/cabinet`,
+  )
+}
+
+/** Напоминание в grace: сообщения приходят, но нужна подписка, чтобы их видеть. */
+export async function sendGraceEmail(to: string): Promise<void> {
+  await send(
+    to,
+    'Вам приходят сообщения в MAX — оформите подписку',
+    wrap(
+      `<p style="font-size:15px;color:#33415c">Бесплатный период закончился. Сообщения из MAX продолжают приходить, но чтобы их видеть в Telegram, нужна подписка. Оформите её — и доступ вернётся сразу.</p>`,
+    ),
+    `Сообщения приходят в MAX, но нужна подписка, чтобы их видеть: ${SITE}/cabinet`,
+  )
+}

@@ -52,17 +52,10 @@ export async function POST(req: Request) {
         const customerId = typeof session.customer === 'string' ? session.customer : null
         const subId = typeof session.subscription === 'string' ? session.subscription : null
         if (userId && customerId) {
-          db.setPayment(userId, {
-            payment_provider: 'stripe',
-            provider_customer_id: customerId,
-            provider_subscription_id: subId,
-            payment_status: 'trialing',
-            status: 'active',
-          })
-          if (subId) {
-            const sub = await stripe.subscriptions.retrieve(subId)
-            db.setPayment(userId, { trial_ends_at: iso(sub.trial_end), current_period_end: periodEnd(sub) })
-          }
+          db.setPayment(userId, { provider_customer_id: customerId, provider_subscription_id: subId })
+          let end: string | null = null
+          if (subId) end = periodEnd(await stripe.subscriptions.retrieve(subId))
+          db.activateSubscription(userId, end, 'stripe') // оплачено сразу (триал у нас в БД)
         }
         break
       }
@@ -71,9 +64,7 @@ export async function POST(req: Request) {
         const customerId = typeof inv.customer === 'string' ? inv.customer : null
         const user = customerId ? db.byProviderCustomer(customerId) : undefined
         if (user && (inv.amount_paid ?? 0) > 0) {
-          db.markFirstPaid(user.id) // первая реальная оплата после триала
-          const end = inv.lines?.data?.[0]?.period?.end
-          db.setPayment(user.id, { payment_status: 'active', status: 'active', current_period_end: iso(end) })
+          db.activateSubscription(user.id, iso(inv.lines?.data?.[0]?.period?.end), 'stripe')
         }
         break
       }

@@ -27,6 +27,10 @@ export interface User {
   provider_customer_id: string | null
   provider_subscription_id: string | null
   max_phone: string | null // номер, под которым юзер вошёл в MAX — уникален между аккаунтами
+  grace_until: string | null // конец grace-периода после триала (4 дня)
+  last_reminder_at: string | null // когда слали последнее письмо-напоминание (max 1/день)
+  teardown_pending: number // 1 — провижинеру снести MAX-профиль (неоплата)
+  restore_pending: number // 1 — провижинеру вернуть профиль после оплаты
   updated_at: string
 }
 
@@ -98,9 +102,14 @@ export class ControlDb {
   /** Идемпотентные миграции для уже существующих БД (CREATE TABLE их не добавит). */
   private migrate(): void {
     const cols = this.db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>
-    if (!cols.some((c) => c.name === 'max_phone')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN max_phone TEXT`)
-    }
+    const has = (c: string) => cols.some((x) => x.name === c)
+    if (!has('max_phone')) this.db.exec(`ALTER TABLE users ADD COLUMN max_phone TEXT`)
+    if (!has('grace_until')) this.db.exec(`ALTER TABLE users ADD COLUMN grace_until TEXT`)
+    if (!has('last_reminder_at')) this.db.exec(`ALTER TABLE users ADD COLUMN last_reminder_at TEXT`)
+    if (!has('teardown_pending'))
+      this.db.exec(`ALTER TABLE users ADD COLUMN teardown_pending INTEGER NOT NULL DEFAULT 0`)
+    if (!has('restore_pending'))
+      this.db.exec(`ALTER TABLE users ADD COLUMN restore_pending INTEGER NOT NULL DEFAULT 0`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_max_phone ON users(max_phone) WHERE max_phone IS NOT NULL`,
     )
@@ -241,6 +250,93 @@ export class ControlDb {
 
   recordCrash(userId: number | null = null, detail = ''): void {
     this.logEvent(userId, 'crash', detail)
+  }
+
+  // ===== Жизненный цикл подписки (бесплатный триал → напоминания → grace → снос) =====
+
+  /** Триал заканчивается в ближайшие `days` дней — кому слать напоминание (≤1/день). */
+  trialEndingSoon(days: number): User[] {
+    return this.db
+      .prepare(
+        `SELECT * FROM users
+          WHERE payment_status = 'trialing' AND trial_ends_at IS NOT NULL
+            AND trial_ends_at > strftime('%Y-%m-%dT%H:%M:%SZ','now')
+            AND trial_ends_at <= datetime('now', '+' || ? || ' days')
+            AND (last_reminder_at IS NULL OR date(last_reminder_at) < date('now'))`,
+      )
+      .all(days) as unknown as User[]
+  }
+
+  /** Триал истёк и не оплачен → переводим в grace (past_due) на `graceDays`. Возвращает переведённых. */
+  moveExpiredTrialsToGrace(graceDays: number): User[] {
+    const expired = this.db
+      .prepare(
+        `SELECT * FROM users WHERE payment_status = 'trialing'
+           AND trial_ends_at IS NOT NULL AND trial_ends_at <= strftime('%Y-%m-%dT%H:%M:%SZ','now')`,
+      )
+      .all() as unknown as User[]
+    for (const u of expired) {
+      const grace = new Date(Date.now() + graceDays * 86_400_000).toISOString()
+      this.update(u.id, { payment_status: 'past_due', grace_until: grace })
+      this.logEvent(u.id, 'trial_expired')
+    }
+    return expired
+  }
+
+  /** В grace и ещё не истёк — кому слать «сообщения ждут, оформите подписку» (≤1/день). */
+  graceReminders(): User[] {
+    return this.db
+      .prepare(
+        `SELECT * FROM users
+          WHERE payment_status = 'past_due' AND grace_until IS NOT NULL
+            AND grace_until > strftime('%Y-%m-%dT%H:%M:%SZ','now')
+            AND (last_reminder_at IS NULL OR date(last_reminder_at) < date('now'))`,
+      )
+      .all() as unknown as User[]
+  }
+
+  /** Grace истёк и не оплачен → suspend + флаг сноса профиля. Возвращает приостановленных. */
+  expireGrace(): User[] {
+    const gone = this.db
+      .prepare(
+        `SELECT * FROM users WHERE payment_status = 'past_due' AND grace_until IS NOT NULL
+           AND grace_until <= strftime('%Y-%m-%dT%H:%M:%SZ','now')`,
+      )
+      .all() as unknown as User[]
+    for (const u of gone) {
+      this.update(u.id, { status: 'suspended', teardown_pending: 1 })
+      this.logEvent(u.id, 'suspended_teardown')
+    }
+    return gone
+  }
+
+  markReminded(userId: number): void {
+    this.update(userId, { last_reminder_at: new Date().toISOString() })
+  }
+
+  /** Оплата прошла → активируем; если был suspended — ставим флаг восстановления профиля. */
+  activateSubscription(userId: number, currentPeriodEnd: string | null, provider: string): void {
+    const u = this.byId(userId)
+    const wasSuspended = u?.status === 'suspended'
+    this.markFirstPaid(userId)
+    this.update(userId, {
+      payment_provider: provider,
+      payment_status: 'active',
+      status: 'active',
+      current_period_end: currentPeriodEnd,
+      grace_until: null,
+      teardown_pending: 0,
+      restore_pending: wasSuspended ? 1 : 0,
+    })
+    this.logEvent(userId, 'activated', provider)
+  }
+
+  /** Для провижинера: кого снести / кого восстановить. */
+  pendingTeardowns(): User[] {
+    return this.db.prepare(`SELECT * FROM users WHERE teardown_pending = 1`).all() as unknown as User[]
+  }
+  pendingRestores(): User[] {
+    return this.db.prepare(`SELECT * FROM users WHERE restore_pending = 1`).all() as unknown as User[]
   }
 
   daysRemaining(user: User): number {

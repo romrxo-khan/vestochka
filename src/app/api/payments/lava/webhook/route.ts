@@ -43,14 +43,8 @@ export async function POST(req: Request) {
   try {
     if (type === 'payment.success' || type === 'subscription.recurring.payment.success') {
       if (status === 'completed' || status === 'subscription-active' || type.includes('recurring')) {
-        db.markFirstPaid(user.id)
-        // НЕ меняем provider_subscription_id — корневой контракт держим как ключ маппинга.
-        db.setPayment(user.id, {
-          payment_provider: 'lava',
-          payment_status: 'active',
-          status: 'active',
-          current_period_end: plus30d(),
-        })
+        // Активируем (+ флаг восстановления профиля, если был suspended). Корневой контракт не трогаем.
+        db.activateSubscription(user.id, plus30d(), 'lava')
       }
     } else if (type === 'payment.failed' || status === 'failed' || status === 'subscription-failed') {
       db.setPayment(user.id, { payment_status: 'past_due' })

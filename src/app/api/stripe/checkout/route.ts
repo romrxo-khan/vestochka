@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price, quantity: 1 }],
-      subscription_data: { trial_period_days: 7 },
+      // Бесплатная неделя — наша (в БД, для всех). Подписка у Stripe списывает сразу.
       customer_email: email,
       client_reference_id: user ? String(user.id) : undefined,
       metadata: { plan, app_user_id: user ? String(user.id) : '' },
