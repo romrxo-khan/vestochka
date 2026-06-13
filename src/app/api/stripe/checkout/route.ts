@@ -45,7 +45,8 @@ export async function POST(req: Request) {
       client_reference_id: user ? String(user.id) : undefined,
       metadata: { plan, app_user_id: user ? String(user.id) : '' },
       allow_promotion_codes: true,
-      success_url: `${origin}/payment/success`,
+      // После привязки карты — сразу в кабинет с подключением MAX (не «оплата прошла»: списания нет).
+      success_url: `${origin}/cabinet?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/payment/fail`,
     })
     return NextResponse.json({ ok: true, url: session.url })
