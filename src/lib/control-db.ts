@@ -27,6 +27,8 @@ export interface User {
   provider_customer_id: string | null
   provider_subscription_id: string | null
   max_phone: string | null // номер, под которым юзер вошёл в MAX — уникален между аккаунтами
+  tg_user_id: number | null // Telegram id (связка кабинет↔бот через /start <token>)
+  tg_username: string | null
   grace_until: string | null // конец grace-периода после триала (4 дня)
   last_reminder_at: string | null // когда слали последнее письмо-напоминание (max 1/день)
   teardown_pending: number // 1 — провижинеру снести MAX-профиль (неоплата)
@@ -110,6 +112,9 @@ export class ControlDb {
       this.db.exec(`ALTER TABLE users ADD COLUMN teardown_pending INTEGER NOT NULL DEFAULT 0`)
     if (!has('restore_pending'))
       this.db.exec(`ALTER TABLE users ADD COLUMN restore_pending INTEGER NOT NULL DEFAULT 0`)
+    if (!has('tg_user_id')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_user_id INTEGER`)
+    if (!has('tg_username')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_username TEXT`)
+    this.db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_tg ON users(tg_user_id) WHERE tg_user_id IS NOT NULL`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_max_phone ON users(max_phone) WHERE max_phone IS NOT NULL`,
     )
@@ -142,6 +147,25 @@ export class ControlDb {
     return this.db
       .prepare(`SELECT * FROM users WHERE provider_subscription_id = ? LIMIT 1`)
       .get(subId) as unknown as User | undefined
+  }
+
+  byTelegram(tgUserId: number): User | undefined {
+    return this.db.prepare(`SELECT * FROM users WHERE tg_user_id = ? LIMIT 1`).get(tgUserId) as
+      | unknown
+      | undefined as User | undefined
+  }
+
+  /** Связка Telegram-аккаунта с кабинетом (по /start <token>). Идемпотентна; конфликт → false. */
+  linkTelegram(userId: number, tgUserId: number, tgUsername?: string): { ok: boolean; reason?: string } {
+    const owner = this.byTelegram(tgUserId)
+    if (owner && owner.id !== userId) return { ok: false, reason: 'tg_taken' }
+    try {
+      this.update(userId, { tg_user_id: tgUserId, tg_username: tgUsername ?? null })
+    } catch {
+      return { ok: false, reason: 'tg_taken' }
+    }
+    this.logEvent(userId, 'tg_linked', String(tgUserId))
+    return { ok: true }
   }
 
   byMaxPhone(phone: string): User | undefined {
