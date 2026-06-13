@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyCode, isValidContact, normalizeContact } from '@/lib/otp'
 import { registerUser } from '@/lib/control-plane'
+import { REG_COOKIE, signSession } from '@/lib/reg-session'
 
 export const runtime = 'nodejs'
 
@@ -35,10 +36,19 @@ export async function POST(req: Request) {
     console.error('[verify-code] регистрация в control-plane не удалась:', reg.error)
   }
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     ok: true,
     contact,
     channel,
     trial: reg.ok ? { daysRemaining: reg.daysRemaining, isNew: reg.isNew } : null,
   })
+  // Подтверждённый контакт = сессия для шага оплаты (checkout требует эту куку).
+  res.cookies.set(REG_COOKIE, signSession(contact), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 15 * 60,
+  })
+  return res
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyLavaWebhook } from '@/lib/lava'
-import { getDb, type User } from '@/lib/control-db'
+import { getDb } from '@/lib/control-db'
 
 export const runtime = 'nodejs'
 
@@ -9,12 +9,12 @@ interface LavaEvent {
   status?: string
   contractId?: string
   parentContractId?: string
-  buyer?: { email?: string }
+  timestamp?: string
 }
 
 const plus30d = () => new Date(Date.now() + 30 * 86_400_000).toISOString()
 
-/** Webhook Lava.top. Basic-auth, затем обновляем статус оплаты. */
+/** Webhook Lava.top. Basic-auth → идемпотентность → маппинг ТОЛЬКО по серверному контракту. */
 export async function POST(req: Request) {
   if (!verifyLavaWebhook(req)) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
@@ -27,26 +27,29 @@ export async function POST(req: Request) {
   }
 
   const db = getDb()
-  // Сопоставляем пользователя: по контракту (надёжно) или по почте покупателя.
-  let user: User | undefined
-  const cid = e.parentContractId ?? e.contractId
-  if (cid) user = db.byProviderSubscription(cid)
-  if (!user && e.buyer?.email) user = db.byEmailOrPhone(e.buyer.email.trim().toLowerCase())
-  if (!user) return NextResponse.json({ ok: true }) // нечего обновлять — подтверждаем приём
+  // Корневой контракт подписки сохранён при АУТЕНТИФИЦИРОВАННОМ checkout — только по нему
+  // и сопоставляем. buyer.email НЕ используем (он задаётся плательщиком и не доверенный).
+  const root = e.parentContractId ?? e.contractId
+  if (!root) return NextResponse.json({ ok: true })
+  const user = db.byProviderSubscription(root)
+  if (!user) return NextResponse.json({ ok: true }) // неизвестный контракт — подтверждаем приём
+
+  // Идемпотентность: одно и то же событие не обрабатываем дважды (защита от повторов).
+  const key = `lava:${root}:${e.eventType ?? ''}:${e.timestamp ?? ''}`
+  if (!db.claimWebhookEvent(key)) return NextResponse.json({ ok: true })
 
   const type = e.eventType ?? ''
   const status = e.status ?? ''
-
   try {
     if (type === 'payment.success' || type === 'subscription.recurring.payment.success') {
       if (status === 'completed' || status === 'subscription-active' || type.includes('recurring')) {
         db.markFirstPaid(user.id)
+        // НЕ меняем provider_subscription_id — корневой контракт держим как ключ маппинга.
         db.setPayment(user.id, {
           payment_provider: 'lava',
           payment_status: 'active',
           status: 'active',
           current_period_end: plus30d(),
-          provider_subscription_id: e.contractId ?? cid,
         })
       }
     } else if (type === 'payment.failed' || status === 'failed' || status === 'subscription-failed') {

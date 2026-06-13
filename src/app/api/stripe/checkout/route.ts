@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getStripe, stripeConfigured, priceForPlan } from '@/lib/stripe'
 import { getDb } from '@/lib/control-db'
+import { REG_COOKIE, verifySession } from '@/lib/reg-session'
 
 export const runtime = 'nodejs'
 
@@ -8,7 +9,7 @@ export const runtime = 'nodejs'
  * POST { email, plan? } → создаёт Stripe Checkout (подписка, триал 7 дней) и возвращает URL.
  * Карту вводит сам Stripe (PCI на их стороне). После — редирект на /payment/success.
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   if (!stripeConfigured()) {
     return NextResponse.json({ ok: false, error: 'stripe_not_configured' }, { status: 503 })
   }
@@ -21,6 +22,10 @@ export async function POST(req: Request) {
 
   const email = body.email?.trim().toLowerCase()
   if (!email) return NextResponse.json({ ok: false, error: 'missing_email' }, { status: 400 })
+  // Доступ только владельцу подтверждённой почты (кука verify-code) — иначе чужой email/абуз.
+  if (!verifySession(req.cookies.get(REG_COOKIE)?.value, email)) {
+    return NextResponse.json({ ok: false, error: 'unverified' }, { status: 401 })
+  }
   const plan = body.plan === 'personal' ? 'personal' : 'shared'
   const price = priceForPlan(plan)
   if (!price) return NextResponse.json({ ok: false, error: 'no_price' }, { status: 500 })

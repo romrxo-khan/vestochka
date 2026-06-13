@@ -79,6 +79,10 @@ CREATE TABLE IF NOT EXISTS events (
   type TEXT NOT NULL, detail TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id);
+CREATE TABLE IF NOT EXISTS webhook_events (
+  key TEXT PRIMARY KEY,
+  ts TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
 `
 
 export class ControlDb {
@@ -117,6 +121,12 @@ export class ControlDb {
     return this.db
       .prepare(`SELECT * FROM users WHERE provider_customer_id = ? LIMIT 1`)
       .get(customerId) as unknown as User | undefined
+  }
+
+  /** Идемпотентность webhook: true — событие НОВОЕ (обрабатываем), false — уже видели. */
+  claimWebhookEvent(key: string): boolean {
+    const r = this.db.prepare(`INSERT OR IGNORE INTO webhook_events (key) VALUES (?)`).run(key)
+    return r.changes === 1
   }
 
   byProviderSubscription(subId: string): User | undefined {
