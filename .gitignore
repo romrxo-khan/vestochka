@@ -12,3 +12,6 @@ build/
 # next
 /next-env.d.ts
 .gstack/
+
+# TS incremental build info (must not ship into Docker build context)
+*.tsbuildinfo
