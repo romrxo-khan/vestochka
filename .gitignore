@@ -15,3 +15,8 @@ build/
 
 # TS incremental build info (must not ship into Docker build context)
 *.tsbuildinfo
+
+# local control-plane DB
+data/
+*.sqlite
+*.sqlite-*

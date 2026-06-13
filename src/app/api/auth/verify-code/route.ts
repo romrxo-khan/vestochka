@@ -39,6 +39,6 @@ export async function POST(req: Request) {
     ok: true,
     contact,
     channel,
-    trial: reg.ok && !reg.skipped ? { daysRemaining: reg.daysRemaining, isNew: reg.isNew } : null,
+    trial: reg.ok ? { daysRemaining: reg.daysRemaining, isNew: reg.isNew } : null,
   })
 }
