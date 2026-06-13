@@ -144,7 +144,8 @@ export default function Home() {
 
       <footer>
         <span>
-          <Link href="/blog">Блог</Link> · <Link href="/editorial-policy">Редполитика</Link>
+          <Link href="/blog">Блог</Link> · <Link href="/editorial-policy">Редполитика</Link> ·{' '}
+          <Link href="/requisites">Реквизиты</Link>
         </span>
         <span>Не является официальным сервисом MAX.</span>
       </footer>
