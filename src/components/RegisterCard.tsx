@@ -15,8 +15,33 @@ export default function RegisterCard() {
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaReset, setCaptchaReset] = useState(0)
   const [trialDays, setTrialDays] = useState<number | null>(null)
+  const [checkoutBusy, setCheckoutBusy] = useState(false)
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+  const stripeOn = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+
+  // «Привязать карту»: Stripe Checkout (подписка, неделя триала). Редирект на страницу Stripe.
+  async function startCheckout() {
+    setError('')
+    setCheckoutBusy(true)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: contact, plan: 'shared' }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok || !data.url) {
+        setError('Не удалось открыть оплату. Попробуйте ещё раз.')
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      setError('Нет связи с сервером. Попробуйте ещё раз.')
+    } finally {
+      setCheckoutBusy(false)
+    }
+  }
 
   async function sendCode(e?: React.FormEvent) {
     e?.preventDefault()
@@ -85,14 +110,31 @@ export default function RegisterCard() {
       <div className="head">Регистрация</div>
 
       {step === 'done' ? (
-        <p className="lead">
-          Почта подтверждена ✅{' '}
-          <strong>
-            Бесплатная неделя активна{typeof trialDays === 'number' ? ` — осталось ${trialDays} дн.` : ''}.
-          </strong>{' '}
-          Готовим ваш доступ к MAX: следующий шаг — вход в MAX по номеру и SMS, мы свяжемся с вами
-          здесь же.
-        </p>
+        <>
+          <p className="lead">
+            Почта подтверждена ✅{' '}
+            {stripeOn ? (
+              <>
+                Привяжите карту — и <strong>первая неделя бесплатно</strong>. Списания не будет
+                7 дней, отменить можно в любой момент.
+              </>
+            ) : (
+              <>
+                <strong>
+                  Бесплатная неделя активна
+                  {typeof trialDays === 'number' ? ` — осталось ${trialDays} дн.` : ''}.
+                </strong>{' '}
+                Готовим ваш доступ к MAX: следующий шаг — вход в MAX по номеру и SMS, мы свяжемся с
+                вами здесь же.
+              </>
+            )}
+          </p>
+          {stripeOn && (
+            <button type="button" onClick={startCheckout} disabled={checkoutBusy}>
+              {checkoutBusy ? 'Открываем оплату…' : 'Привязать карту · неделя бесплатно'}
+            </button>
+          )}
+        </>
       ) : (
         <>
           <p className="lead">

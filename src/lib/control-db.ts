@@ -91,6 +91,13 @@ export class ControlDb {
       .get(value, value) as unknown as User | undefined
   }
 
+  /** Поиск по id клиента провайдера (Stripe customer / 1plat) — для webhook-событий. */
+  byProviderCustomer(customerId: string): User | undefined {
+    return this.db
+      .prepare(`SELECT * FROM users WHERE provider_customer_id = ? LIMIT 1`)
+      .get(customerId) as unknown as User | undefined
+  }
+
   /**
    * Идемпотентная регистрация с триалом. Race-safe: уникальные индексы на email/phone +
    * перехват нарушения уникальности (если параллельный запрос успел вставить первым).
@@ -132,6 +139,7 @@ export class ControlDb {
         User,
         | 'payment_status'
         | 'payment_provider'
+        | 'trial_ends_at'
         | 'current_period_end'
         | 'provider_customer_id'
         | 'provider_subscription_id'
