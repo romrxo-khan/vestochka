@@ -28,13 +28,13 @@ export async function POST(req: Request) {
   // Пользователь уже создан на verify-code; берём его id для связи с подпиской.
   const user = getDb().byEmailOrPhone(email)
 
-  // ПУБЛИЧНЫЙ origin: за Cloudflare/Traefik req.url видит внутренний localhost — нельзя.
-  // Берём из SITE_URL, иначе из x-forwarded-* заголовков, иначе как fallback.
-  const fwdHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host')
-  const fwdProto = req.headers.get('x-forwarded-proto') ?? 'https'
-  const origin =
-    process.env.SITE_URL?.replace(/\/$/, '') ??
-    (fwdHost ? `${fwdProto}://${fwdHost}` : new URL(req.url).origin)
+  // ПУБЛИЧНЫЙ origin строго из SITE_URL (не из заголовков — иначе host-injection/open-redirect
+  // в success_url). За Cloudflare/Traefik req.url = внутренний localhost, поэтому fail-closed.
+  const origin = process.env.SITE_URL?.replace(/\/$/, '')
+  if (!origin) {
+    console.error('[stripe/checkout] SITE_URL не задан')
+    return NextResponse.json({ ok: false, error: 'site_url_not_configured' }, { status: 500 })
+  }
 
   try {
     const session = await getStripe().checkout.sessions.create({
