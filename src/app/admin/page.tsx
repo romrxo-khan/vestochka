@@ -1,21 +1,19 @@
+import { cookies } from 'next/headers'
 import { getDb } from '@/lib/control-db'
+import { ADMIN_COOKIE, verifyAdminSession } from '@/lib/admin-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-/** Дашборд метрик. Защищён токеном: /admin?token=ADMIN_TOKEN. */
-export default async function AdminPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ token?: string }>
-}) {
-  const { token } = await searchParams
-  const expected = process.env.ADMIN_TOKEN
-
-  if (!expected || token !== expected) {
+/** Дашборд метрик. Авторизация по httpOnly-куке (логин: /api/admin/login?token=…). */
+export default async function AdminPage() {
+  const session = (await cookies()).get(ADMIN_COOKIE)?.value
+  if (!verifyAdminSession(session)) {
     return (
       <main style={{ fontFamily: 'system-ui', padding: 40, color: '#33415c' }}>
-        <p>Нужен токен: <code>/admin?token=…</code></p>
+        <p>
+          Доступ закрыт. Войдите: <code>/api/admin/login?token=…</code>
+        </p>
       </main>
     )
   }

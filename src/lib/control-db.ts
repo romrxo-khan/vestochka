@@ -61,7 +61,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_email ON users(email) WHERE email IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_phone ON users(phone) WHERE phone IS NOT NULL;
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -90,18 +91,34 @@ export class ControlDb {
       .get(value, value) as unknown as User | undefined
   }
 
-  /** Идемпотентная регистрация с триалом. */
+  /**
+   * Идемпотентная регистрация с триалом. Race-safe: уникальные индексы на email/phone +
+   * перехват нарушения уникальности (если параллельный запрос успел вставить первым).
+   * Email нормализуем в нижний регистр, чтобы case-варианты не плодили дубли.
+   */
   findOrCreateTrialUser(input: { email?: string; phone?: string; plan?: Plan; trialDays?: number }): {
     user: User
     isNew: boolean
   } {
-    const key = input.email ?? input.phone
+    const email = input.email ? input.email.trim().toLowerCase() : null
+    const phone = input.phone ?? null
+    const key = email ?? phone
     const existing = key ? this.byEmailOrPhone(key) : undefined
     if (existing) return { user: existing, isNew: false }
 
-    const { id } = this.db
-      .prepare(`INSERT INTO users (email, phone, plan) VALUES (?, ?, ?) RETURNING id`)
-      .get(input.email ?? null, input.phone ?? null, input.plan ?? 'shared') as { id: number }
+    let id: number
+    try {
+      id = (
+        this.db
+          .prepare(`INSERT INTO users (email, phone, plan) VALUES (?, ?, ?) RETURNING id`)
+          .get(email, phone, input.plan ?? 'shared') as { id: number }
+      ).id
+    } catch (e) {
+      // Проиграли гонку — кто-то вставил тот же контакт. Возвращаем существующего.
+      const u = key ? this.byEmailOrPhone(key) : undefined
+      if (u) return { user: u, isNew: false }
+      throw e
+    }
     this.logEvent(id, 'registered', input.plan ?? 'shared')
     const trialEnds = new Date(Date.now() + (input.trialDays ?? 7) * 86_400_000).toISOString()
     this.update(id, { payment_status: 'trialing', trial_ends_at: trialEnds })

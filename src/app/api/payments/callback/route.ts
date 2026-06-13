@@ -17,22 +17,21 @@ export const dynamic = 'force-dynamic'
  *      + markFirstPaid(userId) при первой успешной оплате.
  *   4) Идемпотентность по id транзакции.
  */
-async function handle(req: Request): Promise<NextResponse> {
-  let payload: unknown = null
-  try {
-    const ct = req.headers.get('content-type') ?? ''
-    if (ct.includes('application/json')) payload = await req.json()
-    else {
-      const text = await req.text()
-      payload = text || null
-    }
-  } catch {
-    payload = null
-  }
-  // Логируем для отладки формата провайдера (без секретов в проде позже урезать).
-  console.log('[payments/callback]', JSON.stringify(payload)?.slice(0, 1000))
+const MAX_BODY = 64 * 1024 // потолок тела, чтобы нельзя было «закормить» логи/память
 
-  // Провайдеры обычно ждут "OK"/200, иначе ретраят. Подпись и запись в БД — после доков.
+async function handle(req: Request): Promise<NextResponse> {
+  const raw = (await req.text()).slice(0, MAX_BODY)
+
+  // По умолчанию НЕ логируем тело (PII/платёжные данные). Полный дамп — только при
+  // DEBUG_PAYMENTS=1 (для разовой отладки формата провайдера), выключен в проде.
+  if (process.env.DEBUG_PAYMENTS === '1') {
+    console.log('[payments/callback] body:', raw.slice(0, 1000))
+  } else {
+    console.log('[payments/callback] received', raw.length, 'bytes')
+  }
+
+  // TODO: проверить подпись провайдера, распарсить, обновить статус оплаты в БД.
+  // Провайдеры обычно ждут "OK"/200, иначе ретраят.
   return new NextResponse('OK', { status: 200 })
 }
 
