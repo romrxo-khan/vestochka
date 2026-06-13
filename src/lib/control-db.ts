@@ -26,7 +26,16 @@ export interface User {
   current_period_end: string | null
   provider_customer_id: string | null
   provider_subscription_id: string | null
+  max_phone: string | null // номер, под которым юзер вошёл в MAX — уникален между аккаунтами
   updated_at: string
+}
+
+/** Нормализация телефона MAX к E.164 (РФ-фиксапы). null — если не похоже на номер. */
+export function normalizeMaxPhone(raw: string): string | null {
+  let d = raw.replace(/\D/g, '')
+  if (d.length === 11 && d.startsWith('8')) d = '7' + d.slice(1)
+  if (d.length === 10 && d.startsWith('9')) d = '7' + d
+  return d.length >= 11 && d.length <= 15 ? '+' + d : null
 }
 
 export interface Metrics {
@@ -79,6 +88,18 @@ export class ControlDb {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     this.db = new DatabaseSync(file)
     this.db.exec(SCHEMA)
+    this.migrate()
+  }
+
+  /** Идемпотентные миграции для уже существующих БД (CREATE TABLE их не добавит). */
+  private migrate(): void {
+    const cols = this.db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>
+    if (!cols.some((c) => c.name === 'max_phone')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN max_phone TEXT`)
+    }
+    this.db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_max_phone ON users(max_phone) WHERE max_phone IS NOT NULL`,
+    )
   }
 
   byId(id: number): User | undefined {
@@ -96,6 +117,45 @@ export class ControlDb {
     return this.db
       .prepare(`SELECT * FROM users WHERE provider_customer_id = ? LIMIT 1`)
       .get(customerId) as unknown as User | undefined
+  }
+
+  byMaxPhone(phone: string): User | undefined {
+    return this.db.prepare(`SELECT * FROM users WHERE max_phone = ? LIMIT 1`).get(phone) as
+      | unknown
+      | undefined as User | undefined
+  }
+
+  /**
+   * Привязывает MAX-номер к аккаунту. Анти-абуз триала: один MAX-номер = один аккаунт навсегда.
+   * Если номер уже занят ДРУГИМ аккаунтом — отказ (его нельзя завести на второй аккаунт ради
+   * нового триала). Идемпотентно для своего же аккаунта.
+   */
+  claimMaxPhone(
+    userId: number,
+    rawPhone: string,
+  ): { ok: true; phone: string } | { ok: false; reason: 'invalid' | 'taken'; byUserId?: number } {
+    const phone = normalizeMaxPhone(rawPhone)
+    if (!phone) return { ok: false, reason: 'invalid' }
+
+    const owner = this.byMaxPhone(phone)
+    if (owner) {
+      if (owner.id === userId) return { ok: true, phone } // уже наш
+      this.logEvent(userId, 'max_phone_conflict', phone)
+      return { ok: false, reason: 'taken', byUserId: owner.id }
+    }
+    try {
+      this.update(userId, { max_phone: phone })
+    } catch {
+      // Гонка: номер заняли между проверкой и записью.
+      const o = this.byMaxPhone(phone)
+      if (o && o.id !== userId) {
+        this.logEvent(userId, 'max_phone_conflict', phone)
+        return { ok: false, reason: 'taken', byUserId: o.id }
+      }
+      throw new Error('claimMaxPhone failed')
+    }
+    this.logEvent(userId, 'max_phone_claimed', phone)
+    return { ok: true, phone }
   }
 
   /**
