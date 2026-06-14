@@ -244,9 +244,38 @@ footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12
 .onb-step.done .dot { background: #7fdca0; }
 .onb-note { margin-top: 12px; font-size: 13px; color: var(--soft); }
 
-/* Шаг 3 — инструкция по группе */
-.guide-steps { margin: 16px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 14px; }
-.guide-steps li { font-size: 15px; line-height: 1.55; color: var(--soft); }
-.guide-steps li b { color: #cfe0ff; }
-.guide-steps code { background: rgba(127,176,255,.12); border: 1px solid var(--line);
-  border-radius: 6px; padding: 1px 6px; color: #cfe0ff; font-size: 14px; }
+/* Шаг 3 — визуальная инструкция по группе */
+.guide-card { display: flex; gap: 14px; margin-top: 20px; }
+.guide-num { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--blue); color: #fff; font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; }
+.guide-body { flex: 1; min-width: 0; }
+.guide-cap { font-size: 16px; font-weight: 700; color: #cfe0ff; }
+.guide-desc { font-size: 14px; color: var(--soft); margin: 4px 0 12px; line-height: 1.5; }
+.guide-done { margin-top: 22px; font-size: 15px; color: #9fe3b4; line-height: 1.5; }
+
+.tg-mock { max-width: 300px; }
+.tg-phone { border-radius: 18px; border: 1px solid var(--line); background: #0e1626;
+  overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.tg-bar { padding: 11px 14px; background: #16203a; font-size: 13px; font-weight: 600;
+  color: #cfe0ff; letter-spacing: .2px; }
+.tg-row { padding: 12px 14px; font-size: 14px; color: var(--soft);
+  border-top: 1px solid rgba(255,255,255,.05); display: flex; align-items: center;
+  justify-content: space-between; gap: 10px; }
+.tg-row-label { display: flex; align-items: center; gap: 9px; }
+.tg-ic { font-size: 15px; }
+.tg-row.hl { background: rgba(127,176,255,.16); color: #fff;
+  box-shadow: inset 3px 0 0 var(--blue); }
+.tg-chev { color: var(--soft); }
+.tg-toggle { width: 36px; height: 20px; border-radius: 999px; background: #2a3550;
+  position: relative; flex: 0 0 auto; }
+.tg-toggle.on { background: var(--blue); }
+.tg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px;
+  height: 16px; border-radius: 50%; background: #fff; }
+.tg-toggle.on::after { left: 18px; }
+.tg-search { padding: 10px 14px; font-size: 13px; color: var(--soft);
+  border-top: 1px solid rgba(255,255,255,.05); }
+.tg-tap { margin-top: 9px; font-size: 13px; color: #7fb0ff; font-weight: 600;
+  display: flex; align-items: center; gap: 8px; }
+.tg-tap-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--blue);
+  animation: onb-pulse 1s ease-in-out infinite; }
