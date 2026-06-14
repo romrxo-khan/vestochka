@@ -59,7 +59,11 @@ export default async function CabinetPage({
   const tgLinked = Boolean(user?.tg_user_id)
   const linkUrl = user && botUser ? `https://t.me/${botUser}?start=${signLinkToken(user.id)}` : null
   const maxOnline = user ? db.onbGet(user.id)?.state === 'ONLINE' : false
-  const setupDone = user ? user.setup_done === 1 : false
+  // Кабинет (а не онбординг) показываем, если юзер нажал «Готово» ИЛИ всё уже подключено.
+  const fullyConnected = user
+    ? tgLinked && Boolean(user.max_phone) && user.group_ok === 1
+    : false
+  const showCabinet = user ? user.setup_done === 1 || fullyConnected : false
   const refCode = user ? db.ensureReferralCode(user.id) : ''
   const siteUrl = (process.env.SITE_URL ?? 'https://vestochka.uk').replace(/\/$/, '')
   const inviteUrl = `${siteUrl}/?ref=${refCode}`
@@ -117,7 +121,7 @@ export default async function CabinetPage({
       </div>
 
       {user &&
-        (setupDone ? (
+        (showCabinet ? (
           <AccountView
             email={user.email ?? '—'}
             planLabel={planLabel}
@@ -125,8 +129,11 @@ export default async function CabinetPage({
             statusLabel={statusLabel}
             maxPhone={user.max_phone}
             tgLinked={tgLinked}
+            groupOk={user.group_ok === 1}
+            groupTitle={user.group_title}
             refCode={refCode}
             inviteUrl={inviteUrl}
+            linkUrl={linkUrl}
           />
         ) : (
           <>

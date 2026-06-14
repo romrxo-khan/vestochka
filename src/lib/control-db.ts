@@ -549,6 +549,13 @@ export class ControlDb {
     this.update(userId, { setup_done: done ? 1 : 0 })
   }
 
+  /** Сброс подключения MAX (смена номера): чистим номер и сессию онбординга. */
+  resetMax(userId: number): void {
+    this.update(userId, { max_phone: null })
+    this.db.prepare(`DELETE FROM onboarding WHERE user_id = ?`).run(userId)
+    this.logEvent(userId, 'max_reset', '')
+  }
+
   /**
    * Авто-привязка группы: бот сообщает, что его добавили/изменили права в группе.
    * groupId=null (бота удалили) — очищаем. ok=true только если админ с «управлением темами».

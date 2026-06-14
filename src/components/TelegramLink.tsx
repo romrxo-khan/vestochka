@@ -11,9 +11,11 @@ import { useRouter } from 'next/navigation'
 export default function TelegramLink({
   linkUrl,
   initialLinked,
+  forceShow = false,
 }: {
   linkUrl: string | null
   initialLinked: boolean
+  forceShow?: boolean
 }) {
   const [linked, setLinked] = useState(initialLinked)
   const [copied, setCopied] = useState(false)
@@ -37,7 +39,7 @@ export default function TelegramLink({
     return () => clearInterval(id)
   }, [linked, router])
 
-  if (linked) {
+  if (linked && !forceShow) {
     return (
       <p className="lead">
         Telegram подключён ✅ Сообщения из MAX и уведомления будут приходить в бота.
