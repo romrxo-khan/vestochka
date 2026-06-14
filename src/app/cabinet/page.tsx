@@ -112,9 +112,15 @@ export default async function CabinetPage({
             </p>
             {!tgLinked &&
               (linkUrl ? (
-                <a className="pay-btn" href={linkUrl} style={{ textDecoration: 'none' }}>
+                <a
+                  className="pay-btn"
+                  href={linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'none' }}
+                >
                   <span className="pay-btn-title">Открыть бота в Telegram</span>
-                  <span className="pay-btn-sub">привяжем автоматически</span>
+                  <span className="pay-btn-sub">откроется в новой вкладке — привяжем автоматически</span>
                 </a>
               ) : (
                 <p className="fine">Бот скоро будет доступен здесь.</p>
