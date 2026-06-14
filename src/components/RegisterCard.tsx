@@ -16,6 +16,7 @@ export default function RegisterCard() {
   const [captchaReset, setCaptchaReset] = useState(0)
   const [trialDays, setTrialDays] = useState<number | null>(null)
   const [checkoutBusy, setCheckoutBusy] = useState(false)
+  const [cardType, setCardType] = useState<'ru' | 'foreign' | null>(null)
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const stripeOn = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -137,34 +138,72 @@ export default function RegisterCard() {
       {step === 'done' ? (
         payOn ? (
           <>
-            <p className="lead">
-              Почта подтверждена ✅ <strong>Бесплатная неделя активна!</strong> Оформить подписку
-              можно сейчас или позже — напомним перед окончанием.
-            </p>
-            {lavaOn && (
-              <button type="button" className="pay-btn" onClick={startLava} disabled={checkoutBusy}>
-                <span className="pay-btn-title">
-                  {checkoutBusy ? 'Открываем оплату…' : 'Оплатить российской картой'}
-                </span>
-                {!checkoutBusy && <span className="pay-btn-sub">карты РФ · МИР, Visa, Mastercard</span>}
-              </button>
-            )}
-            {stripeOn && (
-              <button
-                type="button"
-                className={lavaOn ? 'pay-btn alt' : 'pay-btn'}
-                onClick={startCheckout}
-                disabled={checkoutBusy}
-              >
-                <span className="pay-btn-title">
-                  {lavaOn ? 'Зарубежная карта' : 'Привязать карту'}
-                </span>
-                {!checkoutBusy && (
-                  <span className="pay-btn-sub">
-                    {lavaOn ? 'Stripe · первая неделя бесплатно' : 'Первая неделя — бесплатно'}
+            {lavaOn && stripeOn && !cardType ? (
+              // Спрашиваем тип карты: РФ → неделя без карты; зарубежная → Stripe-триал за карту.
+              <>
+                <p className="lead">
+                  Почта подтверждена ✅ <strong>Бесплатная неделя активна!</strong> Чем удобнее
+                  оплачивать?
+                </p>
+                <button type="button" className="pay-btn" onClick={() => setCardType('ru')}>
+                  <span className="pay-btn-title">🇷🇺 Российская карта</span>
+                  <span className="pay-btn-sub">неделя бесплатно без карты — оплатите потом</span>
+                </button>
+                <button type="button" className="pay-btn alt" onClick={() => setCardType('foreign')}>
+                  <span className="pay-btn-title">🌍 Зарубежная карта</span>
+                  <span className="pay-btn-sub">Stripe · карту привяжете сейчас, неделя бесплатно</span>
+                </button>
+              </>
+            ) : cardType === 'ru' || (lavaOn && !stripeOn) ? (
+              // РФ: неделя уже идёт (без карты), оплата при готовности.
+              <>
+                <p className="lead">
+                  Бесплатная неделя активна ✅ Оплатите российской картой, когда будете готовы —
+                  спишем при оформлении, дальше помесячно.
+                </p>
+                <button type="button" className="pay-btn" onClick={startLava} disabled={checkoutBusy}>
+                  <span className="pay-btn-title">
+                    {checkoutBusy ? 'Открываем оплату…' : 'Оплатить российской картой'}
                   </span>
+                  {!checkoutBusy && (
+                    <span className="pay-btn-sub">карты РФ · МИР, Visa, Mastercard</span>
+                  )}
+                </button>
+                {stripeOn && (
+                  <button
+                    type="button"
+                    className="link-back"
+                    onClick={() => setCardType(null)}
+                    style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 8 }}
+                  >
+                    ← другой способ оплаты
+                  </button>
                 )}
-              </button>
+              </>
+            ) : (
+              // Зарубежная: Stripe-триал — карта сейчас, списание через 7 дней.
+              <>
+                <p className="lead">
+                  Привяжите зарубежную карту — <strong>первая неделя бесплатно</strong>, спишем
+                  только через 7 дней. Отменить можно в любой момент.
+                </p>
+                <button type="button" className="pay-btn" onClick={startCheckout} disabled={checkoutBusy}>
+                  <span className="pay-btn-title">
+                    {checkoutBusy ? 'Открываем оплату…' : 'Привязать карту · неделя бесплатно'}
+                  </span>
+                  {!checkoutBusy && <span className="pay-btn-sub">Stripe · Visa, Mastercard</span>}
+                </button>
+                {lavaOn && (
+                  <button
+                    type="button"
+                    className="link-back"
+                    onClick={() => setCardType(null)}
+                    style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 8 }}
+                  >
+                    ← другой способ оплаты
+                  </button>
+                )}
+              </>
             )}
             <ul className="pay-points">
               <li>
