@@ -173,6 +173,7 @@ export class ControlDb {
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_max_phone ON users(max_phone) WHERE max_phone IS NOT NULL`,
     )
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_users_group ON users(group_id) WHERE group_id IS NOT NULL`)
   }
 
   byId(id: number): User | undefined {
@@ -206,6 +207,13 @@ export class ControlDb {
 
   byTelegram(tgUserId: number): User | undefined {
     return this.db.prepare(`SELECT * FROM users WHERE tg_user_id = ? LIMIT 1`).get(tgUserId) as
+      | unknown
+      | undefined as User | undefined
+  }
+
+  /** Поиск владельца группы — для роутинга входящих Telegram-сообщений в его MAX-агент. */
+  byGroupId(groupId: string): User | undefined {
+    return this.db.prepare(`SELECT * FROM users WHERE group_id = ? LIMIT 1`).get(groupId) as
       | unknown
       | undefined as User | undefined
   }
