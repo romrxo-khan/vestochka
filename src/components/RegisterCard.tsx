@@ -139,19 +139,14 @@ export default function RegisterCard() {
         payOn ? (
           <>
             {lavaOn && stripeOn && !cardType ? (
-              // Спрашиваем тип карты: РФ → неделя без карты; зарубежная → Stripe-триал за карту.
+              // Сначала простой выбор карты — без обещаний и без преимуществ способов.
               <>
-                <p className="lead">
-                  Почта подтверждена ✅ <strong>Бесплатная неделя активна!</strong> Чем удобнее
-                  оплачивать?
-                </p>
+                <p className="lead">Почта подтверждена ✅ Какой картой будете оплачивать?</p>
                 <button type="button" className="pay-btn" onClick={() => setCardType('ru')}>
                   <span className="pay-btn-title">🇷🇺 Российская карта</span>
-                  <span className="pay-btn-sub">неделя бесплатно без карты — оплатите потом</span>
                 </button>
                 <button type="button" className="pay-btn alt" onClick={() => setCardType('foreign')}>
                   <span className="pay-btn-title">🌍 Зарубежная карта</span>
-                  <span className="pay-btn-sub">Stripe · карту привяжете сейчас, неделя бесплатно</span>
                 </button>
               </>
             ) : cardType === 'ru' || (lavaOn && !stripeOn) ? (
