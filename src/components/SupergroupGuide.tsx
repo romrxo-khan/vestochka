@@ -165,7 +165,11 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
         <div className="guide-num">1</div>
         <div className="guide-body">
           <div className="guide-cap">Создайте группу</div>
-          <div className="guide-desc">Меню (☰) вверху слева → «{L.newGroup}». Назовите и создайте.</div>
+          <div className="guide-desc">
+            Откройте Telegram. На телефоне нажмите карандаш ✏️ (внизу справа), на компьютере — меню
+            ☰ (вверху слева) → «{L.newGroup}». Выберите любой контакт (потом можно убрать) → «Далее»
+            → введите название, например «Весточка» → создайте группу.
+          </div>
           <Phone title="☰  Telegram" rtl={rtl} tap={`Нажмите «${L.newGroup}»`}>
             <Row label={L.newGroup} icon="👥" hl chevron />
             <Row label={L.contacts} icon="👤" />
@@ -178,7 +182,11 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
         <div className="guide-num">2</div>
         <div className="guide-body">
           <div className="guide-cap">Включите темы</div>
-          <div className="guide-desc">Откройте группу → «{L.edit}» → включите «{L.topics}».</div>
+          <div className="guide-desc">
+            Откройте созданную группу. Нажмите на её <b>название вверху</b> — откроется информация о
+            группе. Нажмите «{L.edit}» (карандаш ✏️ вверху справа). Найдите переключатель «
+            {L.topics}» и включите его. Нажмите «Сохранить» (галочка ✓ вверху справа).
+          </div>
           <Phone title={`Весточка · ${L.edit}`} rtl={rtl} tap={`Включите «${L.topics}»`}>
             <Row label={L.topics} icon="🗂️" hl toggle="on" />
             <Row label={L.history} icon="🕘" toggle="off" />
@@ -191,7 +199,11 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
         <div className="guide-num">3</div>
         <div className="guide-body">
           <div className="guide-cap">Добавьте бота</div>
-          <div className="guide-desc">В группе → «{L.addMember}» → найдите бота → добавьте.</div>
+          <div className="guide-desc">
+            Снова откройте информацию о группе (нажав на название вверху). Нажмите «{L.addMember}». В
+            поле поиска введите <code>@{BOT}</code>, выберите бота из списка → «Добавить» →
+            подтвердите.
+          </div>
           <Phone title={L.addMember} rtl={rtl} tap="Найдите и добавьте бота">
             <div className="tg-search">🔎 {L.search}: {BOT}</div>
             <Row label={`@${BOT}`} icon="🐦" hl chevron />
@@ -204,7 +216,9 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
         <div className="guide-body">
           <div className="guide-cap">Дайте права боту</div>
           <div className="guide-desc">
-            «{L.edit}» → «{L.admins}» → «{L.addAdmin}» → бот → включите «{L.manageTopics}».
+            В информации о группе нажмите «{L.edit}» → «{L.admins}» → «{L.addAdmin}» → выберите{' '}
+            <code>@{BOT}</code>. В списке прав найдите и <b>обязательно включите «{L.manageTopics}»</b>{' '}
+            (без него бот не сможет создавать темы). Нажмите «Сохранить».
           </div>
           <Phone title={L.admins} rtl={rtl} tap={`Включите «${L.manageTopics}»`}>
             <Row label={L.manageTopics} icon="🗂️" hl toggle="on" />
