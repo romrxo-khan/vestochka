@@ -42,7 +42,7 @@ export default async function Image() {
         >
           <span>Близкие пишут в MAX.</span>
           <span>
-            Вы отвечаете <span style={{ color: '#1d6ff2' }}>из Telegram</span>.
+            Вы отвечаете <span style={{ color: '#1d6ff2' }}>из Telegram</span>
           </span>
         </div>
         <div style={{ display: 'flex', fontSize: 26, fontWeight: 500, color: '#5c6b7e' }}>

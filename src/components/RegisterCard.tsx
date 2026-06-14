@@ -141,7 +141,9 @@ export default function RegisterCard() {
             {lavaOn && stripeOn && !cardType ? (
               // Сначала простой выбор карты — без обещаний и без преимуществ способов.
               <>
-                <p className="lead">Почта подтверждена ✅ Какой картой будете оплачивать?</p>
+                <p className="lead">
+                  Почта подтверждена ✅ Пробный период активен. Какой способ оплаты предпочитаете?
+                </p>
                 <button type="button" className="pay-btn" onClick={() => setCardType('ru')}>
                   <span className="pay-btn-title">🇷🇺 Российская карта</span>
                 </button>

@@ -21,7 +21,7 @@ export default function Home() {
       <div className="hero">
         <span className="eyebrow">MAX → Telegram</span>
         <h1>
-          Близкие пишут в&nbsp;MAX. Вы отвечаете <span>из&nbsp;Telegram</span>.
+          Близкие пишут в&nbsp;MAX. Вы отвечаете <span>из&nbsp;Telegram</span>
         </h1>
         <p className="sub">
           Сообщения из MAX приходят в привычный Telegram. Отвечайте текстом, голосом, фото и
