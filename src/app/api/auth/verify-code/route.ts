@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import { verifyCode, isValidContact, normalizeContact } from '@/lib/otp'
 import { registerUser } from '@/lib/control-plane'
+import { getDb } from '@/lib/control-db'
 import { REG_COOKIE, signSession } from '@/lib/reg-session'
 
 export const runtime = 'nodejs'
 
 /** POST { channel, contact, code } → проверяет код. На успехе здесь позже создаём аккаунт. */
 export async function POST(req: Request) {
-  let body: { channel?: string; contact?: string; code?: string }
+  let body: { channel?: string; contact?: string; code?: string; referralCode?: string }
   try {
     body = await req.json()
   } catch {
@@ -36,12 +37,20 @@ export async function POST(req: Request) {
     console.error('[verify-code] регистрация в control-plane не удалась:', reg.error)
   }
 
-  const res = NextResponse.json({
-    ok: true,
-    contact,
-    channel,
-    trial: reg.ok ? { daysRemaining: reg.daysRemaining, isNew: reg.isNew } : null,
-  })
+  // Реферальный код — только для НОВОГО аккаунта: приглашённому 2 недели, пригласившему +1.
+  let referralApplied = false
+  let trial = reg.ok ? { daysRemaining: reg.daysRemaining, isNew: reg.isNew } : null
+  const refCode = body.referralCode?.trim()
+  if (reg.ok && reg.isNew && reg.userId && refCode) {
+    const r = getDb().applyReferral(reg.userId, refCode)
+    referralApplied = r.ok
+    if (r.ok) {
+      const u = getDb().byId(reg.userId)
+      if (u) trial = { daysRemaining: getDb().daysRemaining(u), isNew: reg.isNew }
+    }
+  }
+
+  const res = NextResponse.json({ ok: true, contact, channel, trial, referralApplied })
   // Подтверждённый контакт = сессия входа (passwordless). 30 дней.
   res.cookies.set(REG_COOKIE, signSession(contact), {
     httpOnly: true,

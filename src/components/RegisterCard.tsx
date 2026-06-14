@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Turnstile from './Turnstile'
 
 type Step = 'contact' | 'code' | 'done'
@@ -18,6 +18,25 @@ export default function RegisterCard() {
   const [checkoutBusy, setCheckoutBusy] = useState(false)
   const [cardType, setCardType] = useState<'ru' | 'foreign' | null>(null)
   const [returning, setReturning] = useState(false) // аккаунт уже был — это вход, не регистрация
+  const [refCode, setRefCode] = useState('') // реферальный код приглашения
+  const [refApplied, setRefApplied] = useState(false)
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null) // уже вошедший пользователь
+
+  // Подхватываем код из ссылки-приглашения ?ref=CODE.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('ref')
+    if (p) setRefCode(p.trim().toUpperCase())
+  }, [])
+
+  // Если сессия ещё жива — предлагаем сразу в кабинет, без повторного логина.
+  useEffect(() => {
+    fetch('/api/me', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.loggedIn) setSessionEmail(d.email ?? '')
+      })
+      .catch(() => {})
+  }, [])
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const stripeOn = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -110,7 +129,7 @@ export default function RegisterCard() {
       const res = await fetch('/api/auth/verify-code', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ channel: 'email', contact, code }),
+        body: JSON.stringify({ channel: 'email', contact, code, referralCode: refCode || undefined }),
       })
       const data = await res.json()
       if (!res.ok || !data.ok) {
@@ -122,6 +141,7 @@ export default function RegisterCard() {
       }
       if (typeof data.trial?.daysRemaining === 'number') setTrialDays(data.trial.daysRemaining)
       if (data.trial?.isNew === false) setReturning(true) // аккаунт уже существовал → это вход
+      if (data.referralApplied) setRefApplied(true)
       setStep('done')
     } catch {
       setError('Нет связи с сервером. Попробуйте ещё раз.')
@@ -151,6 +171,11 @@ export default function RegisterCard() {
           </>
         ) : payOn ? (
           <>
+            {refApplied && (
+              <p className="lead" style={{ color: '#9fe3b4' }}>
+                🎁 Код приглашения принят — у вас <strong>2 недели бесплатно</strong>.
+              </p>
+            )}
             {lavaOn && stripeOn && !cardType ? (
               // Сначала простой выбор карты — без обещаний и без преимуществ способов.
               <>
@@ -244,6 +269,17 @@ export default function RegisterCard() {
         )
       ) : (
         <>
+          {sessionEmail !== null && step === 'contact' && (
+            <div style={{ marginBottom: 16 }}>
+              <p className="lead">
+                Вы уже вошли{sessionEmail ? ` как ${sessionEmail}` : ''}.
+              </p>
+              <a href="/cabinet" className="pay-btn" style={{ textDecoration: 'none' }}>
+                <span className="pay-btn-title">Перейти в кабинет</span>
+              </a>
+              <p className="fine">Или войдите под другой почтой ниже.</p>
+            </div>
+          )}
           <p className="lead">
             Введите почту — пришлём код. Есть аккаунт — войдёте, нет — заведём.{' '}
             <strong>Первая неделя бесплатно.</strong>
@@ -258,6 +294,14 @@ export default function RegisterCard() {
                 autoComplete="email"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
+              />
+              <input
+                type="text"
+                name="ref"
+                placeholder="Код приглашения (если есть) — +неделя"
+                autoComplete="off"
+                value={refCode}
+                onChange={(e) => setRefCode(e.target.value.toUpperCase())}
               />
               <Turnstile onToken={setCaptchaToken} resetSignal={captchaReset} />
               <button type="submit" disabled={busy || !contact || (captchaOn && !captchaToken)}>

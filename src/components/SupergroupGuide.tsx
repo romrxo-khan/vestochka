@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 const BOT = process.env.NEXT_PUBLIC_BOT_USERNAME ?? 'maxvintgbot'
 
@@ -106,8 +107,24 @@ function Phone({ title, rtl, children, tap }: {
 }
 
 /** Шаг 3: визуальная инструкция по группе. Язык Telegram → подписи кнопок на нём. */
-export default function SupergroupGuide() {
+export default function SupergroupGuide({ showDone = false }: { showDone?: boolean }) {
   const [lang, setLang] = useState<Lang | null>(null)
+  const [busy, setBusy] = useState(false)
+  const router = useRouter()
+
+  async function finish() {
+    setBusy(true)
+    try {
+      await fetch('/api/cabinet/setup', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ done: true }),
+      })
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
 
   if (!lang) {
     return (
@@ -189,8 +206,13 @@ export default function SupergroupGuide() {
       </div>
 
       <p className="guide-done">
-        ✅ Готово! Чаты MAX начнут приходить отдельными темами в этой группе. Отвечайте прямо в темах.
+        ✅ Чаты MAX начнут приходить отдельными темами в этой группе. Отвечайте прямо в темах.
       </p>
+      {showDone && (
+        <button type="button" className="pay-btn" onClick={() => void finish()} disabled={busy}>
+          <span className="pay-btn-title">{busy ? 'Готово…' : 'Готово — в личный кабинет'}</span>
+        </button>
+      )}
       <p className="fine">
         Язык не тот?{' '}
         <button

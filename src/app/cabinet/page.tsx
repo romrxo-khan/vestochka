@@ -9,6 +9,7 @@ import { signLinkToken } from '@/lib/link-token'
 import MaxConnect from '@/components/MaxConnect'
 import SupergroupGuide from '@/components/SupergroupGuide'
 import TelegramLink from '@/components/TelegramLink'
+import AccountView from '@/components/AccountView'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -57,6 +58,19 @@ export default async function CabinetPage({
   const tgLinked = Boolean(user?.tg_user_id)
   const linkUrl = user && botUser ? `https://t.me/${botUser}?start=${signLinkToken(user.id)}` : null
   const maxOnline = user ? db.onbGet(user.id)?.state === 'ONLINE' : false
+  const setupDone = user ? user.setup_done === 1 : false
+  const refCode = user ? db.ensureReferralCode(user.id) : ''
+  const siteUrl = (process.env.SITE_URL ?? 'https://vestochka.uk').replace(/\/$/, '')
+  const inviteUrl = `${siteUrl}/?ref=${refCode}`
+  const planLabel = user?.plan === 'personal' ? 'Личный' : 'Общий'
+  const statusLabel =
+    ps === 'active'
+      ? 'Активна'
+      : ps === 'trialing'
+        ? 'Пробный период'
+        : ps === 'past_due'
+          ? 'Нужна оплата'
+          : 'Приостановлена'
 
   return (
     <div className="wrap">
@@ -101,39 +115,51 @@ export default async function CabinetPage({
         </p>
       </div>
 
-      {user && (
-        <>
-          <section className="cta" style={{ marginTop: 8 }}>
-            <span className="eyebrow" style={{ color: '#7fb0ff' }}>
-              Шаг 1
-            </span>
-            <div className="head">Подключите Telegram</div>
-            <TelegramLink linkUrl={linkUrl} initialLinked={tgLinked} />
-          </section>
+      {user &&
+        (setupDone ? (
+          <AccountView
+            email={user.email ?? '—'}
+            planLabel={planLabel}
+            daysRemaining={days}
+            statusLabel={statusLabel}
+            maxPhone={user.max_phone}
+            tgLinked={tgLinked}
+            refCode={refCode}
+            inviteUrl={inviteUrl}
+          />
+        ) : (
+          <>
+            <section className="cta" style={{ marginTop: 8 }}>
+              <span className="eyebrow" style={{ color: '#7fb0ff' }}>
+                Шаг 1
+              </span>
+              <div className="head">Подключите Telegram</div>
+              <TelegramLink linkUrl={linkUrl} initialLinked={tgLinked} />
+            </section>
 
-          <section className="cta" style={{ marginTop: 16 }}>
-            <span className="eyebrow" style={{ color: '#7fb0ff' }}>
-              Шаг 2
-            </span>
-            <div className="head">Подключите MAX</div>
-            <p className="lead">
-              Введите номер телефона MAX. По нему подключим ваш аккаунт — сообщения будут приходить в
-              Telegram. Нет MAX? Зарегистрируем прямо здесь.
-            </p>
-            <MaxConnect sessionId={session_id ?? ''} canConnect={Boolean(user)} />
-          </section>
-
-          {tgLinked && maxOnline && (
             <section className="cta" style={{ marginTop: 16 }}>
               <span className="eyebrow" style={{ color: '#7fb0ff' }}>
-                Шаг 3
+                Шаг 2
               </span>
-              <div className="head">Создайте группу для чатов</div>
-              <SupergroupGuide />
+              <div className="head">Подключите MAX</div>
+              <p className="lead">
+                Введите номер телефона MAX. По нему подключим ваш аккаунт — сообщения будут приходить
+                в Telegram. Нет MAX? Зарегистрируем прямо здесь.
+              </p>
+              <MaxConnect sessionId={session_id ?? ''} canConnect={Boolean(user)} />
             </section>
-          )}
-        </>
-      )}
+
+            {tgLinked && maxOnline && (
+              <section className="cta" style={{ marginTop: 16 }}>
+                <span className="eyebrow" style={{ color: '#7fb0ff' }}>
+                  Шаг 3
+                </span>
+                <div className="head">Создайте группу для чатов</div>
+                <SupergroupGuide showDone />
+              </section>
+            )}
+          </>
+        ))}
 
       <footer>
         <span>

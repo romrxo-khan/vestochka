@@ -6,6 +6,7 @@
  * Схема инлайнится строкой (а не читается из .sql), чтобы не зависеть от путей при сборке.
  */
 import { DatabaseSync } from 'node:sqlite'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -33,6 +34,9 @@ export interface User {
   last_reminder_at: string | null // когда слали последнее письмо-напоминание (max 1/день)
   teardown_pending: number // 1 — провижинеру снести MAX-профиль (неоплата)
   restore_pending: number // 1 — провижинеру вернуть профиль после оплаты
+  referral_code: string | null // личный код для приглашений (генерится в кабинете)
+  referred_by: number | null // id пригласившего (реферал применён при регистрации)
+  setup_done: number // 1 — пользователь нажал «Готово» в онбординге → основной кабинет
   updated_at: string
 }
 
@@ -152,6 +156,13 @@ export class ControlDb {
       this.db.exec(`ALTER TABLE users ADD COLUMN restore_pending INTEGER NOT NULL DEFAULT 0`)
     if (!has('tg_user_id')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_user_id INTEGER`)
     if (!has('tg_username')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_username TEXT`)
+    if (!has('referral_code')) this.db.exec(`ALTER TABLE users ADD COLUMN referral_code TEXT`)
+    if (!has('referred_by')) this.db.exec(`ALTER TABLE users ADD COLUMN referred_by INTEGER`)
+    if (!has('setup_done'))
+      this.db.exec(`ALTER TABLE users ADD COLUMN setup_done INTEGER NOT NULL DEFAULT 0`)
+    this.db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_refcode ON users(referral_code) WHERE referral_code IS NOT NULL`,
+    )
     this.db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_tg ON users(tg_user_id) WHERE tg_user_id IS NOT NULL`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_max_phone ON users(max_phone) WHERE max_phone IS NOT NULL`,
@@ -469,6 +480,67 @@ export class ControlDb {
       .prepare(`UPDATE onboarding SET pending_kind=NULL, pending_value=NULL WHERE user_id=?`)
       .run(userId)
     return { kind: row.pending_kind, value: row.pending_value }
+  }
+
+  // ── Реферальная программа и завершение онбординга ──────────────────────────
+  /** Возвращает (создавая при необходимости) личный реферальный код пользователя. */
+  ensureReferralCode(userId: number): string {
+    const u = this.byId(userId)
+    if (u?.referral_code) return u.referral_code
+    for (let i = 0; i < 8; i++) {
+      // 7 символов из неоднозначных-безопасного алфавита (без 0/O/1/I).
+      const code = Array.from(crypto.randomBytes(7))
+        .map((b) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 32])
+        .join('')
+      try {
+        this.update(userId, { referral_code: code })
+        return code
+      } catch {
+        /* коллизия уникального индекса — пробуем ещё */
+      }
+    }
+    throw new Error('не удалось сгенерировать реферальный код')
+  }
+
+  byReferralCode(code: string): User | undefined {
+    return this.db
+      .prepare(`SELECT * FROM users WHERE referral_code = ? LIMIT 1`)
+      .get(code.trim().toUpperCase()) as unknown as User | undefined
+  }
+
+  /** Продлевает доступ на N дней (current_period_end если оплачен, иначе trial_ends_at). */
+  creditDays(userId: number, days: number): void {
+    const u = this.byId(userId)
+    if (!u) return
+    const field = u.current_period_end ? 'current_period_end' : 'trial_ends_at'
+    const base = Math.max(Date.now(), Date.parse(u[field] ?? '') || Date.now())
+    const next = new Date(base + days * 86_400_000).toISOString()
+    this.update(userId, { [field]: next } as Partial<User>)
+  }
+
+  /**
+   * Применяет реферальный код при регистрации НОВОГО пользователя:
+   * приглашённому — триал 2 недели, пригласившему — +1 неделя. Один раз на аккаунт.
+   */
+  applyReferral(newUserId: number, code: string): { ok: boolean; reason?: string } {
+    const u = this.byId(newUserId)
+    if (!u) return { ok: false, reason: 'no_user' }
+    if (u.referred_by) return { ok: false, reason: 'already_referred' }
+    const ref = this.byReferralCode(code)
+    if (!ref) return { ok: false, reason: 'bad_code' }
+    if (ref.id === newUserId) return { ok: false, reason: 'self' }
+    // Приглашённому — суммарно 2 недели триала от регистрации.
+    const twoWeeks = new Date(Date.parse(u.created_at) + 14 * 86_400_000).toISOString()
+    this.update(newUserId, { referred_by: ref.id, trial_ends_at: twoWeeks })
+    // Пригласившему — +7 дней.
+    this.creditDays(ref.id, 7)
+    this.logEvent(newUserId, 'referral_used', String(ref.id))
+    this.logEvent(ref.id, 'referral_credited', String(newUserId))
+    return { ok: true }
+  }
+
+  setSetupDone(userId: number, done: boolean): void {
+    this.update(userId, { setup_done: done ? 1 : 0 })
   }
 
   daysRemaining(user: User): number {
