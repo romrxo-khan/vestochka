@@ -20,6 +20,51 @@ type State =
   | 'ONLINE'
   | 'ERROR'
 
+const STEP_LABELS = ['Запуск', 'Проверка', 'Код', 'Готово']
+
+/** Дружелюбный статус + индекс шага для каждого состояния движка. */
+function statusFor(state: State): { text: string; step: number } {
+  switch (state) {
+    case 'QUEUED':
+      return { text: 'Запускаем подключение…', step: 0 }
+    case 'LOADING':
+      return { text: 'Открываем MAX…', step: 0 }
+    case 'PHONE_REQUIRED':
+      return { text: 'Передаём номер…', step: 0 }
+    case 'SOLVING_CAPTCHA':
+      return { text: 'Проходим проверку «не робот»…', step: 1 }
+    case 'CODE_REQUIRED':
+      return { text: 'Код из SMS', step: 2 }
+    case 'PASSWORD_REQUIRED':
+      return { text: 'Пароль доступа', step: 2 }
+    case 'NAME_REQUIRED':
+      return { text: 'Регистрация', step: 2 }
+    case 'ONLINE':
+      return { text: 'Готово', step: 3 }
+    default:
+      return { text: 'Подключаемся…', step: 0 }
+  }
+}
+
+/** Полоска шагов: пройденные — зелёные, текущий — пульсирует. */
+function Steps({ current }: { current: number }) {
+  return (
+    <div className="onb-steps">
+      {STEP_LABELS.map((label, i) => (
+        <span
+          key={label}
+          className={`onb-step ${i < current ? 'done' : i === current ? 'active' : ''}`}
+        >
+          <span className="dot" />
+          {label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+const WORKING: State[] = ['QUEUED', 'LOADING', 'PHONE_REQUIRED', 'SOLVING_CAPTCHA']
+
 export default function MaxConnect({ canConnect }: { sessionId: string; canConnect: boolean }) {
   const [state, setState] = useState<State>('IDLE')
   const [detail, setDetail] = useState<string | null>(null)
@@ -29,7 +74,18 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [active, setActive] = useState(false) // пошёл ли онбординг (включает опрос)
+  const [elapsedSec, setElapsedSec] = useState(0) // сколько идём в «рабочем» состоянии
   const lastSent = useRef<State | null>(null)
+
+  // Тикаем секунды, пока крутится рабочее состояние — для подписи «дольше обычного».
+  useEffect(() => {
+    if (!WORKING.includes(state)) {
+      setElapsedSec(0)
+      return
+    }
+    const id = setInterval(() => setElapsedSec((s) => s + 1), 1000)
+    return () => clearInterval(id)
+  }, [state])
 
   const refresh = useCallback(async () => {
     try {
@@ -145,7 +201,8 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
           : { kind: 'name' as const, label: 'Как вас зовут', ph: 'Имя', im: 'text' as const, type: 'text' }
     return (
       <div style={{ marginTop: 8 }}>
-        <p className="lead">
+        <Steps current={statusFor(state).step} />
+        <p className="lead" style={{ marginTop: 14 }}>
           {state === 'CODE_REQUIRED'
             ? 'MAX прислал код в SMS — введите его.'
             : state === 'PASSWORD_REQUIRED'
@@ -204,12 +261,22 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
     )
   }
 
-  // Активный, но промежуточный шаг (запуск/капча/ждём телефон у контейнера).
+  // Активный промежуточный шаг (запуск/капча/ждём телефон) — живой индикатор.
   if (active && state !== 'IDLE') {
+    const { text, step } = statusFor(state)
     return (
-      <p className="lead" style={{ marginTop: 12 }}>
-        Подключаемся к MAX и проходим проверку… это занимает несколько секунд.
-      </p>
+      <div style={{ marginTop: 8 }}>
+        <div className="onb-status">
+          <span className="onb-spinner" />
+          <span className="onb-status-text">{text}</span>
+        </div>
+        <Steps current={step} />
+        <p className="onb-note">
+          {elapsedSec >= 25
+            ? 'Идёт чуть дольше обычного — MAX иногда отвечает не сразу. Не закрывайте страницу, мы продолжаем.'
+            : 'Не закрывайте страницу — обычно занимает несколько секунд.'}
+        </p>
+      </div>
     )
   }
 

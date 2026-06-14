@@ -225,3 +225,21 @@ footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12
 
 .post-cta { margin-top: 72px; padding-top: 28px; border-top: 1px solid var(--line); color: var(--soft); font-size: 16px; }
 .post-cta a { color: var(--blue); text-decoration: none; font-weight: 700; }
+
+/* Онбординг MAX — живой индикатор статуса (чтобы не казалось, что зависло) */
+@keyframes onb-spin { to { transform: rotate(360deg); } }
+@keyframes onb-pulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+.onb-status { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.onb-spinner { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%;
+  border: 3px solid rgba(127,176,255,.25); border-top-color: var(--blue);
+  animation: onb-spin .8s linear infinite; }
+.onb-status-text { font-size: 16px; color: #cfe0ff; font-weight: 600; }
+.onb-steps { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.onb-step { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--soft);
+  padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; }
+.onb-step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.onb-step.active { color: #cfe0ff; border-color: var(--blue); }
+.onb-step.active .dot { background: var(--blue); animation: onb-pulse 1s ease-in-out infinite; }
+.onb-step.done { color: #7fdca0; border-color: rgba(127,220,160,.4); }
+.onb-step.done .dot { background: #7fdca0; }
+.onb-note { margin-top: 12px; font-size: 13px; color: var(--soft); }
