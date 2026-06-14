@@ -166,6 +166,11 @@ export default function RegisterCard() {
                     <span className="pay-btn-sub">карты РФ · МИР, Visa, Mastercard</span>
                   )}
                 </button>
+                {/* Оплата РФ не берётся сразу — даём пропустить и сразу подключить MAX. */}
+                <a href="/cabinet" className="pay-btn alt" style={{ textDecoration: 'none' }}>
+                  <span className="pay-btn-title">Пропустить — подключить MAX</span>
+                  <span className="pay-btn-sub">оплатите позже, неделя уже идёт</span>
+                </a>
                 {stripeOn && (
                   <button
                     type="button"
