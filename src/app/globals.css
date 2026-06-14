@@ -243,3 +243,10 @@ footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12
 .onb-step.done { color: #7fdca0; border-color: rgba(127,220,160,.4); }
 .onb-step.done .dot { background: #7fdca0; }
 .onb-note { margin-top: 12px; font-size: 13px; color: var(--soft); }
+
+/* Шаг 3 — инструкция по группе */
+.guide-steps { margin: 16px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 14px; }
+.guide-steps li { font-size: 15px; line-height: 1.55; color: var(--soft); }
+.guide-steps li b { color: #cfe0ff; }
+.guide-steps code { background: rgba(127,176,255,.12); border: 1px solid var(--line);
+  border-radius: 6px; padding: 1px 6px; color: #cfe0ff; font-size: 14px; }

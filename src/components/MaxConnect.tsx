@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 /**
  * Шаг подключения MAX. Зеркалит движок входа в контейнере через канал-брокер (сайт):
@@ -76,6 +77,12 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
   const [active, setActive] = useState(false) // пошёл ли онбординг (включает опрос)
   const [elapsedSec, setElapsedSec] = useState(0) // сколько идём в «рабочем» состоянии
   const [submitted, setSubmitted] = useState(false) // ввод отправлен, ждём обработки контейнером
+  const router = useRouter()
+
+  // Как MAX подключился — обновляем страницу, чтобы открылся Шаг 3 (группа).
+  useEffect(() => {
+    if (state === 'ONLINE') router.refresh()
+  }, [state, router])
 
   // Новый шаг ввода (код→пароль→имя) — чистим поле и снимаем «отправлено».
   // Фиксит залипшие «звёзды» прошлого кода в поле пароля и повторные нажатия.

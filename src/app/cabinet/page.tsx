@@ -7,6 +7,7 @@ import { getDb, type User } from '@/lib/control-db'
 import { REG_COOKIE, verifySession } from '@/lib/reg-session'
 import { signLinkToken } from '@/lib/link-token'
 import MaxConnect from '@/components/MaxConnect'
+import SupergroupGuide from '@/components/SupergroupGuide'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,7 @@ export default async function CabinetPage({
   const botUser = process.env.NEXT_PUBLIC_BOT_USERNAME
   const tgLinked = Boolean(user?.tg_user_id)
   const linkUrl = user && botUser ? `https://t.me/${botUser}?start=${signLinkToken(user.id)}` : null
+  const maxOnline = user ? db.onbGet(user.id)?.state === 'ONLINE' : false
 
   return (
     <div className="wrap">
@@ -138,6 +140,16 @@ export default async function CabinetPage({
             </p>
             <MaxConnect sessionId={session_id ?? ''} canConnect={Boolean(user)} />
           </section>
+
+          {tgLinked && maxOnline && (
+            <section className="cta" style={{ marginTop: 16 }}>
+              <span className="eyebrow" style={{ color: '#7fb0ff' }}>
+                Шаг 3
+              </span>
+              <div className="head">Создайте группу для чатов</div>
+              <SupergroupGuide />
+            </section>
+          )}
         </>
       )}
 
