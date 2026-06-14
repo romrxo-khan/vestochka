@@ -206,13 +206,42 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
     return <p className="lead" style={{ marginTop: 12 }}>MAX подключён ✅ Сообщения пойдут в Telegram.</p>
   }
 
-  if (state === 'CODE_REQUIRED' || state === 'PASSWORD_REQUIRED' || state === 'NAME_REQUIRED') {
+  // Нет аккаунта MAX на номере — пока не регистрируем сами, советуем браузер + ссылка.
+  if (state === 'NAME_REQUIRED') {
+    return (
+      <div style={{ marginTop: 8 }}>
+        <Steps current={2} />
+        <p className="lead" style={{ marginTop: 14 }}>
+          На этом номере ещё нет аккаунта MAX. Сначала зарегистрируйтесь в MAX в браузере, затем
+          вернитесь сюда и подключите снова.
+        </p>
+        <a
+          className="pay-btn"
+          href="https://web.max.ru"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: 'none' }}
+        >
+          <span className="pay-btn-title">Зарегистрироваться в MAX</span>
+          <span className="pay-btn-sub">откроется в новой вкладке</span>
+        </a>
+        <button
+          type="button"
+          className="link-back"
+          onClick={() => void retry()}
+          style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 8 }}
+        >
+          ← подключить снова после регистрации
+        </button>
+      </div>
+    )
+  }
+
+  if (state === 'CODE_REQUIRED' || state === 'PASSWORD_REQUIRED') {
     const cfg =
       state === 'CODE_REQUIRED'
         ? { kind: 'code' as const, label: 'Код из SMS', ph: '••••••', im: 'numeric' as const, type: 'text' }
-        : state === 'PASSWORD_REQUIRED'
-          ? { kind: 'password' as const, label: 'Пароль доступа MAX', ph: 'Ваш пароль', im: 'text' as const, type: 'password' }
-          : { kind: 'name' as const, label: 'Как вас зовут', ph: 'Имя', im: 'text' as const, type: 'text' }
+        : { kind: 'password' as const, label: 'Пароль доступа MAX', ph: 'Ваш пароль', im: 'text' as const, type: 'password' }
     return (
       <div style={{ marginTop: 8 }}>
         <Steps current={statusFor(state).step} />

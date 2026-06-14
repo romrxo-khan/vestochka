@@ -42,13 +42,13 @@ export async function POST(req: Request) {
     channel,
     trial: reg.ok ? { daysRemaining: reg.daysRemaining, isNew: reg.isNew } : null,
   })
-  // Подтверждённый контакт = сессия для шага оплаты (checkout требует эту куку).
+  // Подтверждённый контакт = сессия входа (passwordless). 30 дней.
   res.cookies.set(REG_COOKIE, signSession(contact), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     path: '/',
-    maxAge: 15 * 60,
+    maxAge: 30 * 24 * 60 * 60,
   })
   return res
 }

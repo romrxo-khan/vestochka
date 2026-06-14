@@ -17,6 +17,7 @@ export default function RegisterCard() {
   const [trialDays, setTrialDays] = useState<number | null>(null)
   const [checkoutBusy, setCheckoutBusy] = useState(false)
   const [cardType, setCardType] = useState<'ru' | 'foreign' | null>(null)
+  const [returning, setReturning] = useState(false) // аккаунт уже был — это вход, не регистрация
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const stripeOn = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -120,6 +121,7 @@ export default function RegisterCard() {
         return
       }
       if (typeof data.trial?.daysRemaining === 'number') setTrialDays(data.trial.daysRemaining)
+      if (data.trial?.isNew === false) setReturning(true) // аккаунт уже существовал → это вход
       setStep('done')
     } catch {
       setError('Нет связи с сервером. Попробуйте ещё раз.')
@@ -131,12 +133,23 @@ export default function RegisterCard() {
   return (
     <div className="cta" id="register">
       <span className="eyebrow" style={{ color: '#7fb0ff' }}>
-        Начать пользоваться
+        {step === 'done' && returning ? 'С возвращением' : 'Вход и регистрация'}
       </span>
-      <div className="head">Регистрация</div>
+      <div className="head">
+        {step === 'done' && returning ? 'Вы вошли' : 'Вход или регистрация'}
+      </div>
 
       {step === 'done' ? (
-        payOn ? (
+        returning ? (
+          // Аккаунт уже существовал — это вход, без «регистрация/неделя/оплата».
+          <>
+            <p className="lead">С возвращением ✅ Вы вошли в свой аккаунт.</p>
+            <a href="/cabinet" className="pay-btn" style={{ textDecoration: 'none' }}>
+              <span className="pay-btn-title">Перейти в кабинет</span>
+              <span className="pay-btn-sub">подписка, подключение MAX и Telegram</span>
+            </a>
+          </>
+        ) : payOn ? (
           <>
             {lavaOn && stripeOn && !cardType ? (
               // Сначала простой выбор карты — без обещаний и без преимуществ способов.
@@ -232,7 +245,8 @@ export default function RegisterCard() {
       ) : (
         <>
           <p className="lead">
-            Введите почту — и MAX у вас в Telegram. <strong>Первая неделя бесплатно.</strong>
+            Введите почту — пришлём код. Есть аккаунт — войдёте, нет — заведём.{' '}
+            <strong>Первая неделя бесплатно.</strong>
           </p>
 
           {step === 'contact' ? (

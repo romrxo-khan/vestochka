@@ -4,69 +4,68 @@ import { useState } from 'react'
 
 const BOT = process.env.NEXT_PUBLIC_BOT_USERNAME ?? 'maxvintgbot'
 
-type Lang = 'ru' | 'en'
+type Lang = 'ru' | 'en' | 'de' | 'es' | 'he'
 
-/** Подписи кнопок Telegram по языку интерфейса — внутри мокапов и в подсказках. */
-const T: Record<Lang, Record<string, string>> = {
+interface Labels {
+  newGroup: string
+  contacts: string
+  calls: string
+  edit: string
+  topics: string
+  history: string
+  addMember: string
+  search: string
+  admins: string
+  addAdmin: string
+  manageTopics: string
+  pin: string
+}
+
+/**
+ * Названия кнопок Telegram на языке интерфейса пользователя. Инструкции вокруг
+ * остаются на русском (аудитория — русскоязычная эмиграция), а кнопки в мокапах
+ * показываем так, как они подписаны на ЕГО телефоне — чтобы он их нашёл.
+ */
+const LABELS: Record<Lang, Labels> = {
   ru: {
-    tgTitle: 'Telegram',
-    newGroup: 'Создать группу',
-    contacts: 'Контакты',
-    calls: 'Звонки',
-    groupTitle: 'Весточка',
-    edit: 'Изменить',
-    topics: 'Темы',
-    history: 'История чата',
-    addMember: 'Добавить участника',
-    search: 'Поиск',
-    admins: 'Администраторы',
-    addAdmin: 'Добавить администратора',
-    manageTopics: 'Управление темами',
+    newGroup: 'Создать группу', contacts: 'Контакты', calls: 'Звонки', edit: 'Изменить',
+    topics: 'Темы', history: 'История чата', addMember: 'Добавить участника', search: 'Поиск',
+    admins: 'Администраторы', addAdmin: 'Добавить администратора', manageTopics: 'Управление темами',
     pin: 'Закреплять сообщения',
-    tapNewGroup: 'Нажмите «Создать группу»',
-    tapTopics: 'Включите «Темы»',
-    tapBot: 'Найдите и добавьте бота',
-    tapPerm: 'Включите «Управление темами»',
-    cap1: 'Создайте группу',
-    cap1d: 'Меню (☰) вверху слева → «Создать группу». Назовите её и создайте.',
-    cap2: 'Включите темы',
-    cap2d: 'Откройте группу → «Изменить» → включите «Темы».',
-    cap3: 'Добавьте бота',
-    cap3d: 'В группе → «Добавить участника» → найдите бота → добавьте.',
-    cap4: 'Дайте права боту',
-    cap4d: '«Изменить» → «Администраторы» → «Добавить администратора» → бот → включите «Управление темами».',
-    done: 'Готово! Чаты MAX начнут приходить отдельными темами в этой группе. Отвечайте прямо в темах.',
   },
   en: {
-    tgTitle: 'Telegram',
-    newGroup: 'New Group',
-    contacts: 'Contacts',
-    calls: 'Calls',
-    groupTitle: 'Vestochka',
-    edit: 'Edit',
-    topics: 'Topics',
-    history: 'Chat History',
-    addMember: 'Add Member',
-    search: 'Search',
-    admins: 'Administrators',
-    addAdmin: 'Add Admin',
-    manageTopics: 'Manage Topics',
+    newGroup: 'New Group', contacts: 'Contacts', calls: 'Calls', edit: 'Edit',
+    topics: 'Topics', history: 'Chat History', addMember: 'Add Member', search: 'Search',
+    admins: 'Administrators', addAdmin: 'Add Admin', manageTopics: 'Manage Topics',
     pin: 'Pin Messages',
-    tapNewGroup: 'Tap “New Group”',
-    tapTopics: 'Turn on “Topics”',
-    tapBot: 'Find and add the bot',
-    tapPerm: 'Turn on “Manage Topics”',
-    cap1: 'Create a group',
-    cap1d: 'Menu (☰) top-left → “New Group”. Name it and create.',
-    cap2: 'Enable topics',
-    cap2d: 'Open the group → “Edit” → turn on “Topics”.',
-    cap3: 'Add the bot',
-    cap3d: 'In the group → “Add Member” → find the bot → add it.',
-    cap4: 'Give the bot rights',
-    cap4d: '“Edit” → “Administrators” → “Add Admin” → bot → turn on “Manage Topics”.',
-    done: 'Done! Your MAX chats will arrive as separate topics in this group. Reply right in the topics.',
+  },
+  de: {
+    newGroup: 'Neue Gruppe', contacts: 'Kontakte', calls: 'Anrufe', edit: 'Bearbeiten',
+    topics: 'Themen', history: 'Chatverlauf', addMember: 'Mitglied hinzufügen', search: 'Suche',
+    admins: 'Administratoren', addAdmin: 'Administrator hinzufügen', manageTopics: 'Themen verwalten',
+    pin: 'Nachrichten anpinnen',
+  },
+  es: {
+    newGroup: 'Nuevo grupo', contacts: 'Contactos', calls: 'Llamadas', edit: 'Editar',
+    topics: 'Temas', history: 'Historial del chat', addMember: 'Añadir miembro', search: 'Buscar',
+    admins: 'Administradores', addAdmin: 'Añadir administrador', manageTopics: 'Gestionar temas',
+    pin: 'Fijar mensajes',
+  },
+  he: {
+    newGroup: 'קבוצה חדשה', contacts: 'אנשי קשר', calls: 'שיחות', edit: 'עריכה',
+    topics: 'נושאים', history: "היסטוריית צ'אט", addMember: 'הוספת חבר', search: 'חיפוש',
+    admins: 'מנהלים', addAdmin: 'הוספת מנהל', manageTopics: 'ניהול נושאים',
+    pin: 'הצמדת הודעות',
   },
 }
+
+const PICKER: Array<{ id: Lang; label: string }> = [
+  { id: 'ru', label: '🇷🇺 Русский' },
+  { id: 'en', label: '🇬🇧 English' },
+  { id: 'de', label: '🇩🇪 Deutsch' },
+  { id: 'es', label: '🇪🇸 Español' },
+  { id: 'he', label: '🇮🇱 עברית' },
+]
 
 function Row({ label, hl, icon, chevron, toggle }: {
   label: string
@@ -87,11 +86,15 @@ function Row({ label, hl, icon, chevron, toggle }: {
   )
 }
 
-/** Мокап экрана телефона + подпись «нажмите сюда». */
-function Phone({ title, children, tap }: { title: string; children: React.ReactNode; tap: string }) {
+function Phone({ title, rtl, children, tap }: {
+  title: string
+  rtl: boolean
+  children: React.ReactNode
+  tap: string
+}) {
   return (
     <div className="tg-mock">
-      <div className="tg-phone">
+      <div className="tg-phone" dir={rtl ? 'rtl' : 'ltr'}>
         <div className="tg-bar">{title}</div>
         {children}
       </div>
@@ -102,10 +105,7 @@ function Phone({ title, children, tap }: { title: string; children: React.ReactN
   )
 }
 
-/**
- * Шаг 3: визуальная инструкция по группе. Сначала язык Telegram, затем
- * иллюстрированные шаги с подсветкой нужных кнопок (подписи на выбранном языке).
- */
+/** Шаг 3: визуальная инструкция по группе. Язык Telegram → подписи кнопок на нём. */
 export default function SupergroupGuide() {
   const [lang, setLang] = useState<Lang | null>(null)
 
@@ -116,30 +116,35 @@ export default function SupergroupGuide() {
           Последний шаг — создать группу в Telegram, куда бот разложит ваши чаты MAX по темам.
           Покажу по шагам с картинками. <strong>На каком языке у вас Telegram?</strong>
         </p>
-        <button type="button" className="pay-btn" onClick={() => setLang('ru')}>
-          <span className="pay-btn-title">🇷🇺 Русский</span>
-        </button>
-        <button type="button" className="pay-btn alt" onClick={() => setLang('en')}>
-          <span className="pay-btn-title">🌍 English / другой</span>
-        </button>
+        {PICKER.map((p, i) => (
+          <button
+            key={p.id}
+            type="button"
+            className={i === 0 ? 'pay-btn' : 'pay-btn alt'}
+            onClick={() => setLang(p.id)}
+          >
+            <span className="pay-btn-title">{p.label}</span>
+          </button>
+        ))}
       </div>
     )
   }
 
-  const t = T[lang]
+  const L = LABELS[lang]
+  const rtl = lang === 'he'
   return (
     <div>
-      <p className="lead">Создайте группу и добавьте бота — сделайте 4 шага по картинкам ниже.</p>
+      <p className="lead">Создайте группу и добавьте бота — 4 шага по картинкам ниже.</p>
 
       <div className="guide-card">
         <div className="guide-num">1</div>
         <div className="guide-body">
-          <div className="guide-cap">{t.cap1}</div>
-          <div className="guide-desc">{t.cap1d}</div>
-          <Phone title={`☰  ${t.tgTitle}`} tap={t.tapNewGroup}>
-            <Row label={t.newGroup} icon="👥" hl chevron />
-            <Row label={t.contacts} icon="👤" />
-            <Row label={t.calls} icon="📞" />
+          <div className="guide-cap">Создайте группу</div>
+          <div className="guide-desc">Меню (☰) вверху слева → «{L.newGroup}». Назовите и создайте.</div>
+          <Phone title="☰  Telegram" rtl={rtl} tap={`Нажмите «${L.newGroup}»`}>
+            <Row label={L.newGroup} icon="👥" hl chevron />
+            <Row label={L.contacts} icon="👤" />
+            <Row label={L.calls} icon="📞" />
           </Phone>
         </div>
       </div>
@@ -147,12 +152,12 @@ export default function SupergroupGuide() {
       <div className="guide-card">
         <div className="guide-num">2</div>
         <div className="guide-body">
-          <div className="guide-cap">{t.cap2}</div>
-          <div className="guide-desc">{t.cap2d}</div>
-          <Phone title={`${t.groupTitle} · ${t.edit}`} tap={t.tapTopics}>
-            <Row label={t.topics} icon="🗂️" hl toggle="on" />
-            <Row label={t.history} icon="🕘" toggle="off" />
-            <Row label={t.admins} icon="🛡️" chevron />
+          <div className="guide-cap">Включите темы</div>
+          <div className="guide-desc">Откройте группу → «{L.edit}» → включите «{L.topics}».</div>
+          <Phone title={`Весточка · ${L.edit}`} rtl={rtl} tap={`Включите «${L.topics}»`}>
+            <Row label={L.topics} icon="🗂️" hl toggle="on" />
+            <Row label={L.history} icon="🕘" toggle="off" />
+            <Row label={L.admins} icon="🛡️" chevron />
           </Phone>
         </div>
       </div>
@@ -160,10 +165,10 @@ export default function SupergroupGuide() {
       <div className="guide-card">
         <div className="guide-num">3</div>
         <div className="guide-body">
-          <div className="guide-cap">{t.cap3}</div>
-          <div className="guide-desc">{t.cap3d}</div>
-          <Phone title={t.addMember} tap={t.tapBot}>
-            <div className="tg-search">🔎 {t.search}: {BOT}</div>
+          <div className="guide-cap">Добавьте бота</div>
+          <div className="guide-desc">В группе → «{L.addMember}» → найдите бота → добавьте.</div>
+          <Phone title={L.addMember} rtl={rtl} tap="Найдите и добавьте бота">
+            <div className="tg-search">🔎 {L.search}: {BOT}</div>
             <Row label={`@${BOT}`} icon="🐦" hl chevron />
           </Phone>
         </div>
@@ -172,16 +177,20 @@ export default function SupergroupGuide() {
       <div className="guide-card">
         <div className="guide-num">4</div>
         <div className="guide-body">
-          <div className="guide-cap">{t.cap4}</div>
-          <div className="guide-desc">{t.cap4d}</div>
-          <Phone title={t.admins} tap={t.tapPerm}>
-            <Row label={t.manageTopics} icon="🗂️" hl toggle="on" />
-            <Row label={t.pin} icon="📌" toggle="on" />
+          <div className="guide-cap">Дайте права боту</div>
+          <div className="guide-desc">
+            «{L.edit}» → «{L.admins}» → «{L.addAdmin}» → бот → включите «{L.manageTopics}».
+          </div>
+          <Phone title={L.admins} rtl={rtl} tap={`Включите «${L.manageTopics}»`}>
+            <Row label={L.manageTopics} icon="🗂️" hl toggle="on" />
+            <Row label={L.pin} icon="📌" toggle="on" />
           </Phone>
         </div>
       </div>
 
-      <p className="guide-done">✅ {t.done}</p>
+      <p className="guide-done">
+        ✅ Готово! Чаты MAX начнут приходить отдельными темами в этой группе. Отвечайте прямо в темах.
+      </p>
       <p className="fine">
         Язык не тот?{' '}
         <button

@@ -11,7 +11,8 @@
 import crypto from 'node:crypto'
 
 export const REG_COOKIE = 'reg_session'
-const TTL_MS = 15 * 60_000
+// Сессия входа (passwordless по коду). 30 дней — чтобы не логиниться каждый раз.
+const TTL_MS = 30 * 24 * 60 * 60_000
 const SECRET = process.env.OTP_SECRET ?? 'dev-otp-secret-change-me'
 
 function sig(payload: string): string {
