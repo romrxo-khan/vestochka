@@ -10,6 +10,7 @@ import MaxConnect from '@/components/MaxConnect'
 import SupergroupGuide from '@/components/SupergroupGuide'
 import TelegramLink from '@/components/TelegramLink'
 import AccountView from '@/components/AccountView'
+import ContactsGuide from '@/components/ContactsGuide'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -156,6 +157,16 @@ export default async function CabinetPage({
                 </span>
                 <div className="head">Создайте группу для чатов</div>
                 <SupergroupGuide showDone />
+              </section>
+            )}
+
+            {tgLinked && maxOnline && (
+              <section className="cta" style={{ marginTop: 16 }}>
+                <span className="eyebrow" style={{ color: '#7fb0ff' }}>
+                  Шаг 4
+                </span>
+                <div className="head">Как появятся собеседники</div>
+                <ContactsGuide />
               </section>
             )}
           </>

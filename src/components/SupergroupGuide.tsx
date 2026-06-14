@@ -1,7 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
+interface GroupStatus {
+  connected: boolean
+  rightsOk: boolean
+  title: string | null
+}
 
 const BOT = process.env.NEXT_PUBLIC_BOT_USERNAME ?? 'maxvintgbot'
 
@@ -109,22 +114,25 @@ function Phone({ title, rtl, children, tap }: {
 /** Шаг 3: визуальная инструкция по группе. Язык Telegram → подписи кнопок на нём. */
 export default function SupergroupGuide({ showDone = false }: { showDone?: boolean }) {
   const [lang, setLang] = useState<Lang | null>(null)
-  const [busy, setBusy] = useState(false)
-  const router = useRouter()
+  const [status, setStatus] = useState<GroupStatus | null>(null)
 
-  async function finish() {
-    setBusy(true)
-    try {
-      await fetch('/api/cabinet/setup', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ done: true }),
-      })
-      router.refresh()
-    } finally {
-      setBusy(false)
+  // В режиме онбординга (showDone) следим за статусом группы — подсказываем,
+  // добавлен ли бот в группу с правами (защита от «забыл добавить»).
+  useEffect(() => {
+    if (!showDone) return
+    const check = async () => {
+      try {
+        const r = await fetch('/api/telegram/group-status', { cache: 'no-store' })
+        const d = await r.json()
+        if (d.ok) setStatus({ connected: d.connected, rightsOk: d.rightsOk, title: d.title })
+      } catch {
+        /* нет связи — повторим */
+      }
     }
-  }
+    void check()
+    const id = setInterval(check, 4000)
+    return () => clearInterval(id)
+  }, [showDone])
 
   if (!lang) {
     return (
@@ -208,10 +216,26 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
       <p className="guide-done">
         ✅ Чаты MAX начнут приходить отдельными темами в этой группе. Отвечайте прямо в темах.
       </p>
+
       {showDone && (
-        <button type="button" className="pay-btn" onClick={() => void finish()} disabled={busy}>
-          <span className="pay-btn-title">{busy ? 'Готово…' : 'Готово — в личный кабинет'}</span>
-        </button>
+        // Живой статус — защита от «забыл добавить бота / не дал прав».
+        !status || !status.connected ? (
+          <div className="onb-status" style={{ marginTop: 16 }}>
+            <span className="onb-spinner" />
+            <span className="onb-status-text" style={{ color: '#e6b566' }}>
+              Бот ещё не добавлен в группу — выполните шаги выше. Ждём…
+            </span>
+          </div>
+        ) : !status.rightsOk ? (
+          <p className="onb-note" style={{ color: '#e0506a', marginTop: 16 }}>
+            ⚠️ Бот в группе{status.title ? ` «${status.title}»` : ''}, но без прав. Сделайте его
+            администратором с правом «{LABELS[lang].manageTopics}» (шаг 4).
+          </p>
+        ) : (
+          <p className="guide-done" style={{ marginTop: 16 }}>
+            ✅ Группа{status.title ? ` «${status.title}»` : ''} подключена.
+          </p>
+        )
       )}
       <p className="fine">
         Язык не тот?{' '}

@@ -37,6 +37,9 @@ export interface User {
   referral_code: string | null // личный код для приглашений (генерится в кабинете)
   referred_by: number | null // id пригласившего (реферал применён при регистрации)
   setup_done: number // 1 — пользователь нажал «Готово» в онбординге → основной кабинет
+  group_id: string | null // id Telegram-супергруппы пользователя (куда роутить чаты MAX)
+  group_title: string | null // название группы (для UI)
+  group_ok: number // 1 — бот в группе админом с правом «Управление темами»
   updated_at: string
 }
 
@@ -160,6 +163,9 @@ export class ControlDb {
     if (!has('referred_by')) this.db.exec(`ALTER TABLE users ADD COLUMN referred_by INTEGER`)
     if (!has('setup_done'))
       this.db.exec(`ALTER TABLE users ADD COLUMN setup_done INTEGER NOT NULL DEFAULT 0`)
+    if (!has('group_id')) this.db.exec(`ALTER TABLE users ADD COLUMN group_id TEXT`)
+    if (!has('group_title')) this.db.exec(`ALTER TABLE users ADD COLUMN group_title TEXT`)
+    if (!has('group_ok')) this.db.exec(`ALTER TABLE users ADD COLUMN group_ok INTEGER NOT NULL DEFAULT 0`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_refcode ON users(referral_code) WHERE referral_code IS NOT NULL`,
     )
@@ -541,6 +547,19 @@ export class ControlDb {
 
   setSetupDone(userId: number, done: boolean): void {
     this.update(userId, { setup_done: done ? 1 : 0 })
+  }
+
+  /**
+   * Авто-привязка группы: бот сообщает, что его добавили/изменили права в группе.
+   * groupId=null (бота удалили) — очищаем. ok=true только если админ с «управлением темами».
+   */
+  setGroup(userId: number, groupId: string | null, title: string | null, ok: boolean): void {
+    this.update(userId, {
+      group_id: groupId,
+      group_title: groupId ? title : null,
+      group_ok: groupId && ok ? 1 : 0,
+    })
+    this.logEvent(userId, groupId ? (ok ? 'group_ok' : 'group_added') : 'group_removed', String(groupId ?? ''))
   }
 
   daysRemaining(user: User): number {
