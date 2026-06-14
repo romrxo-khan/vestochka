@@ -193,10 +193,18 @@ export class ControlDb {
       | undefined as User | undefined
   }
 
-  /** Связка Telegram-аккаунта с кабинетом (по /start <token>). Идемпотентна; конфликт → false. */
+  /**
+   * Связка Telegram-аккаунта с кабинетом (по /start <token>). Идемпотентна.
+   * Перепривязка: если этот Telegram был привязан к ДРУГОМУ аккаунту — отвязываем
+   * от старого и привязываем к новому (токен уже доказал владение кабинетом userId).
+   * Это чинит кейс «уже запускал бота под другим аккаунтом».
+   */
   linkTelegram(userId: number, tgUserId: number, tgUsername?: string): { ok: boolean; reason?: string } {
     const owner = this.byTelegram(tgUserId)
-    if (owner && owner.id !== userId) return { ok: false, reason: 'tg_taken' }
+    if (owner && owner.id !== userId) {
+      this.update(owner.id, { tg_user_id: null, tg_username: null })
+      this.logEvent(owner.id, 'tg_unlinked', String(tgUserId))
+    }
     try {
       this.update(userId, { tg_user_id: tgUserId, tg_username: tgUsername ?? null })
     } catch {

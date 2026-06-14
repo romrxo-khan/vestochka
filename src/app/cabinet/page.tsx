@@ -8,6 +8,7 @@ import { REG_COOKIE, verifySession } from '@/lib/reg-session'
 import { signLinkToken } from '@/lib/link-token'
 import MaxConnect from '@/components/MaxConnect'
 import SupergroupGuide from '@/components/SupergroupGuide'
+import TelegramLink from '@/components/TelegramLink'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -107,26 +108,7 @@ export default async function CabinetPage({
               Шаг 1
             </span>
             <div className="head">Подключите Telegram</div>
-            <p className="lead">
-              {tgLinked
-                ? 'Telegram подключён ✅ Сообщения и уведомления будут приходить в бота.'
-                : 'Откройте нашего бота — туда будут приходить сообщения из MAX и напоминания.'}
-            </p>
-            {!tgLinked &&
-              (linkUrl ? (
-                <a
-                  className="pay-btn"
-                  href={linkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: 'none' }}
-                >
-                  <span className="pay-btn-title">Открыть бота в Telegram</span>
-                  <span className="pay-btn-sub">откроется в новой вкладке — привяжем автоматически</span>
-                </a>
-              ) : (
-                <p className="fine">Бот скоро будет доступен здесь.</p>
-              ))}
+            <TelegramLink linkUrl={linkUrl} initialLinked={tgLinked} />
           </section>
 
           <section className="cta" style={{ marginTop: 16 }}>
