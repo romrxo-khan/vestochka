@@ -56,6 +56,32 @@ export interface Metrics {
   crashWindowDays: number
 }
 
+/** Зеркало состояний движка входа (src/max/onboard.ts на стороне контейнера). */
+export type OnboardState =
+  | 'IDLE'
+  | 'QUEUED'
+  | 'LOADING'
+  | 'PHONE_REQUIRED'
+  | 'SOLVING_CAPTCHA'
+  | 'HUMAN_CAPTCHA_REQUIRED'
+  | 'CODE_REQUIRED'
+  | 'PASSWORD_REQUIRED'
+  | 'NAME_REQUIRED'
+  | 'ONLINE'
+  | 'ERROR'
+
+export type OnboardInputKind = 'phone' | 'code' | 'password' | 'name' | 'captcha'
+
+export interface OnboardRow {
+  user_id: number
+  state: OnboardState
+  detail: string | null
+  captcha_image: string | null
+  pending_kind: OnboardInputKind | null
+  pending_value: string | null
+  updated_at: string
+}
+
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
@@ -88,6 +114,18 @@ CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id);
 CREATE TABLE IF NOT EXISTS webhook_events (
   key TEXT PRIMARY KEY,
   ts TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+-- Сессия онбординга MAX: брокер между кабинетом (вводит phone/code/password)
+-- и контейнером (гоняет OnboardController). state — зеркало движка; pending_* —
+-- ввод от пользователя, который контейнер ещё не забрал.
+CREATE TABLE IF NOT EXISTS onboarding (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  state TEXT NOT NULL DEFAULT 'IDLE',
+  detail TEXT,
+  captcha_image TEXT,
+  pending_kind TEXT,
+  pending_value TEXT,
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 `
 
@@ -361,6 +399,60 @@ export class ControlDb {
   }
   pendingRestores(): User[] {
     return this.db.prepare(`SELECT * FROM users WHERE restore_pending = 1`).all() as unknown as User[]
+  }
+
+  // ── Онбординг MAX (брокер кабинет↔контейнер) ───────────────────────────────
+  onbGet(userId: number): OnboardRow | undefined {
+    return this.db.prepare(`SELECT * FROM onboarding WHERE user_id = ?`).get(userId) as
+      | unknown
+      | undefined as OnboardRow | undefined
+  }
+
+  /** Кабинет нажал «Подключить MAX»: создаём/сбрасываем сессию в QUEUED. */
+  onbStart(userId: number): void {
+    this.db
+      .prepare(
+        `INSERT INTO onboarding (user_id, state, detail, captcha_image, pending_kind, pending_value, updated_at)
+         VALUES (?, 'QUEUED', NULL, NULL, NULL, NULL, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+         ON CONFLICT(user_id) DO UPDATE SET
+           state='QUEUED', detail=NULL, captcha_image=NULL, pending_kind=NULL, pending_value=NULL,
+           updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')`,
+      )
+      .run(userId)
+  }
+
+  /** Контейнер сообщает своё состояние (и, для HUMAN_CAPTCHA, скриншот). */
+  onbReport(userId: number, state: OnboardState, detail?: string, captchaImage?: string): void {
+    this.db
+      .prepare(
+        `INSERT INTO onboarding (user_id, state, detail, captcha_image, updated_at)
+         VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+         ON CONFLICT(user_id) DO UPDATE SET
+           state=excluded.state, detail=excluded.detail,
+           captcha_image=CASE WHEN excluded.state='HUMAN_CAPTCHA_REQUIRED' THEN excluded.captcha_image ELSE NULL END,
+           updated_at=excluded.updated_at`,
+      )
+      .run(userId, state, detail ?? null, captchaImage ?? null)
+  }
+
+  /** Кабинет передаёт ввод пользователя (phone/code/password/name/captcha). */
+  onbSetInput(userId: number, kind: OnboardInputKind, value: string): void {
+    this.db
+      .prepare(
+        `UPDATE onboarding SET pending_kind=?, pending_value=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
+         WHERE user_id=?`,
+      )
+      .run(kind, value, userId)
+  }
+
+  /** Контейнер забирает ожидающий ввод (и очищает его, чтобы не съесть дважды). */
+  onbTakeInput(userId: number): { kind: OnboardInputKind; value: string } | null {
+    const row = this.onbGet(userId)
+    if (!row?.pending_kind || row.pending_value == null) return null
+    this.db
+      .prepare(`UPDATE onboarding SET pending_kind=NULL, pending_value=NULL WHERE user_id=?`)
+      .run(userId)
+    return { kind: row.pending_kind, value: row.pending_value }
   }
 
   daysRemaining(user: User): number {
