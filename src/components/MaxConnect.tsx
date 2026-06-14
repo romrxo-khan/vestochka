@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 /**
  * Шаг подключения MAX. Зеркалит движок входа в контейнере через канал-брокер (сайт):
@@ -75,7 +75,14 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
   const [error, setError] = useState('')
   const [active, setActive] = useState(false) // пошёл ли онбординг (включает опрос)
   const [elapsedSec, setElapsedSec] = useState(0) // сколько идём в «рабочем» состоянии
-  const lastSent = useRef<State | null>(null)
+  const [submitted, setSubmitted] = useState(false) // ввод отправлен, ждём обработки контейнером
+
+  // Новый шаг ввода (код→пароль→имя) — чистим поле и снимаем «отправлено».
+  // Фиксит залипшие «звёзды» прошлого кода в поле пароля и повторные нажатия.
+  useEffect(() => {
+    setValue('')
+    setSubmitted(false)
+  }, [state])
 
   // Тикаем секунды, пока крутится рабочее состояние — для подписи «дольше обычного».
   useEffect(() => {
@@ -96,10 +103,6 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
       setDetail(d.detail ?? null)
       setCaptcha(d.captchaImage ?? null)
       if (d.state !== 'IDLE') setActive(true)
-      if (['CODE_REQUIRED', 'PASSWORD_REQUIRED', 'NAME_REQUIRED'].includes(d.state)) {
-        if (lastSent.current && lastSent.current !== d.state) setValue('')
-        lastSent.current = null
-      }
     } catch {
       /* нет связи — попробуем на следующем тике */
     }
@@ -157,12 +160,16 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
   async function sendValue(kind: 'code' | 'password' | 'name') {
     setError('')
     setBusy(true)
-    lastSent.current = state
+    setSubmitted(true) // прячем форму до смены статуса — без повторных нажатий
     try {
       const r = await post({ action: 'input', kind, value })
-      if (!r.ok) setError(r.message ?? 'Не удалось отправить. Попробуйте ещё раз.')
+      if (!r.ok) {
+        setError(r.message ?? 'Не удалось отправить. Попробуйте ещё раз.')
+        setSubmitted(false)
+      }
     } catch {
       setError('Нет связи с сервером.')
+      setSubmitted(false)
     } finally {
       setBusy(false)
     }
@@ -202,31 +209,43 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
     return (
       <div style={{ marginTop: 8 }}>
         <Steps current={statusFor(state).step} />
-        <p className="lead" style={{ marginTop: 14 }}>
-          {state === 'CODE_REQUIRED'
-            ? 'MAX прислал код в SMS — введите его.'
-            : state === 'PASSWORD_REQUIRED'
-              ? 'Ваш аккаунт под доп. защитой — введите пароль доступа MAX.'
-              : 'Аккаунта на этом номере нет — зарегистрируем. Введите имя.'}
-        </p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void sendValue(cfg.kind)
-          }}
-        >
-          <input
-            type={cfg.type}
-            placeholder={cfg.ph}
-            inputMode={cfg.im}
-            autoComplete={cfg.kind === 'password' ? 'off' : 'one-time-code'}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
-          <button type="submit" disabled={busy || !value}>
-            {busy ? 'Отправляем…' : 'Продолжить'}
-          </button>
-        </form>
+        {submitted ? (
+          // Ввод отправлен — показываем «проверяем» вместо формы (без повторных нажатий).
+          <div className="onb-status">
+            <span className="onb-spinner" />
+            <span className="onb-status-text">Проверяем…</span>
+          </div>
+        ) : (
+          <>
+            <p className="lead" style={{ marginTop: 14 }}>
+              {state === 'CODE_REQUIRED'
+                ? 'MAX прислал код в SMS — введите его.'
+                : state === 'PASSWORD_REQUIRED'
+                  ? 'Ваш аккаунт под доп. защитой — введите пароль доступа MAX.'
+                  : 'Аккаунта на этом номере нет — зарегистрируем. Введите имя.'}
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                void sendValue(cfg.kind)
+              }}
+            >
+              <input
+                type={cfg.type}
+                placeholder={cfg.ph}
+                inputMode={cfg.im}
+                name={cfg.kind === 'password' ? 'max-access-code' : cfg.kind}
+                autoComplete={cfg.kind === 'password' ? 'new-password' : 'one-time-code'}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                autoFocus
+              />
+              <button type="submit" disabled={busy || !value}>
+                {busy ? 'Отправляем…' : 'Продолжить'}
+              </button>
+            </form>
+          </>
+        )}
         {errBox}
       </div>
     )
