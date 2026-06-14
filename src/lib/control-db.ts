@@ -41,6 +41,7 @@ export interface User {
   group_title: string | null // название группы (для UI)
   group_ok: number // 1 — бот в группе админом с правом «Управление темами»
   agent_state: string // none|provisioning|running|stopped — что реально крутит провижинер
+  agent_url: string | null // адрес агента для роутера (мульти-бокс); null → фолбэк max-user-<id>:8090
   updated_at: string
 }
 
@@ -169,6 +170,7 @@ export class ControlDb {
     if (!has('group_ok')) this.db.exec(`ALTER TABLE users ADD COLUMN group_ok INTEGER NOT NULL DEFAULT 0`)
     if (!has('agent_state'))
       this.db.exec(`ALTER TABLE users ADD COLUMN agent_state TEXT NOT NULL DEFAULT 'none'`)
+    if (!has('agent_url')) this.db.exec(`ALTER TABLE users ADD COLUMN agent_url TEXT`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_refcode ON users(referral_code) WHERE referral_code IS NOT NULL`,
     )
@@ -456,6 +458,14 @@ export class ControlDb {
   /** Провижинер рапортует реальное состояние контейнера юзера. */
   setAgentState(userId: number, state: 'none' | 'provisioning' | 'running' | 'stopped'): void {
     this.update(userId, { agent_state: state })
+  }
+
+  /**
+   * Регистрирует адрес агента (мульти-бокс): роутер берёт его из /api/telegram/route.
+   * null/'' — стереть (вернуться к docker-фолбэку max-user-<id>:8090 на том же боксе).
+   */
+  setAgentUrl(userId: number, agentUrl: string | null): void {
+    this.update(userId, { agent_url: agentUrl && agentUrl.trim() ? agentUrl.trim() : null })
   }
 
   /** Снос выполнен: снимаем флаг, помечаем агента остановленным. */
