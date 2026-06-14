@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import CopyCode from './CopyCode'
 
 interface GroupStatus {
   connected: boolean
@@ -211,7 +212,8 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
           <div className="guide-cap">Добавьте бота</div>
           <div className="guide-desc">
             Снова откройте информацию о группе (нажав на название вверху). Нажмите «{L.addMember}». В
-            поле поиска введите <code>@{BOT}</code>, выберите бота из списка → «Добавить» →
+            поле поиска введите <CopyCode text={`@${BOT}`} /> (нажмите, чтобы скопировать), выберите
+            бота из списка → «Добавить» →
             подтвердите.
           </div>
           <Phone title={L.addMember} rtl={rtl} tap="Найдите и добавьте бота">
@@ -227,7 +229,8 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
           <div className="guide-cap">Дайте права боту</div>
           <div className="guide-desc">
             В информации о группе нажмите «{L.edit}» → «{L.admins}» → «{L.addAdmin}» → выберите{' '}
-            <code>@{BOT}</code>. В списке прав найдите и <b>обязательно включите «{L.manageTopics}»</b>{' '}
+            <CopyCode text={`@${BOT}`} />. В списке прав найдите и{' '}
+            <b>обязательно включите «{L.manageTopics}»</b>{' '}
             (без него бот не сможет создавать темы). Нажмите «Сохранить».
           </div>
           <Phone title={L.admins} rtl={rtl} tap={`Включите «${L.manageTopics}»`}>

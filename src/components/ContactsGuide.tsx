@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import CopyCode from './CopyCode'
 
 /**
  * Шаг 4: как появляются собеседники и как писать новым. Внизу — «Готово»,
@@ -50,8 +51,8 @@ export default function ContactsGuide() {
       <div className="group-ok" style={{ borderColor: 'var(--blue)', background: 'rgba(127,176,255,.12)', color: '#cfe0ff' }}>
         <span className="group-ok-check" style={{ background: 'var(--blue)' }}>i</span>
         <span>
-          Команды для контактов отправляйте боту в <b>«Общей» теме группы</b> (самая верхняя тема) —
-          так ничего не перепутается. Можно и в личном чате с ботом.
+          Команды для контактов отправляйте боту в <b>«Общей» теме группы</b> — так ничего не
+          перепутается.
         </span>
       </div>
       <ul className="guide-steps" style={{ paddingLeft: 0, listStyle: 'none' }}>
@@ -60,17 +61,17 @@ export default function ContactsGuide() {
           человека. Отвечайте прямо в ней — уйдёт ему в MAX.
         </li>
         <li>
-          ✍️ <b>Написать новому</b> — в «Общей» теме отправьте <code>/new Имя</code> (например,{' '}
-          <code>/new Анна</code>). Бот найдёт контакт в MAX, покажет совпадения кнопками — выберите
-          нужного. Откроется чат, появится тема.
+          ✍️ <b>Написать новому</b> — в «Общей» теме отправьте <CopyCode text="/new Имя" /> (например,{' '}
+          <CopyCode text="/new Анна" />). Бот найдёт контакт в MAX, покажет совпадения кнопками —
+          выберите нужного. Откроется чат, появится тема.
         </li>
         <li>
-          📥 <b>Открыть существующий чат</b> — там же <code>/import Имя</code> (быстрее: чат уже есть
-          в MAX).
+          📥 <b>Открыть существующий чат</b> — там же <CopyCode text="/import Имя" /> (если переписка
+          уже была в MAX).
         </li>
         <li>
-          👥 <b>Внутри темы группового чата</b> (3+ человек) команда <code>/new</code> или{' '}
-          <code>/import</code> покажет участников именно этой группы — удобно открыть личку с
+          👥 <b>Внутри темы группового чата</b> (3+ человек) команда <CopyCode text="/new" /> или{' '}
+          <CopyCode text="/import" /> покажет участников именно этой группы — удобно открыть личку с
           кем-то из них.
         </li>
       </ul>

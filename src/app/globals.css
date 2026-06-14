@@ -261,6 +261,9 @@ footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12
 .group-ok-check { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; background: #3fbf6f;
   color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .tg-compose { background: var(--blue); color: #fff; border-radius: 7px; padding: 3px 7px; font-size: 14px; }
+.copy-code { background: rgba(127,176,255,.14); border: 1px solid var(--blue); border-radius: 6px;
+  padding: 1px 7px; color: #cfe0ff; font-size: .92em; cursor: pointer; white-space: nowrap; }
+.copy-code:hover { background: rgba(127,176,255,.24); }
 
 .tg-mock { max-width: 300px; }
 .tg-phone { border-radius: 18px; border: 1px solid var(--line); background: #0e1626;
