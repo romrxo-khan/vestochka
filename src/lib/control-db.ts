@@ -445,6 +445,14 @@ export class ControlDb {
       .run(kind, value, userId)
   }
 
+  /** Для оркестратора: чьи сессии ждут запуска воркера (состояние QUEUED). */
+  onbQueued(): number[] {
+    const rows = this.db
+      .prepare(`SELECT user_id FROM onboarding WHERE state = 'QUEUED'`)
+      .all() as Array<{ user_id: number }>
+    return rows.map((r) => r.user_id)
+  }
+
   /** Контейнер забирает ожидающий ввод (и очищает его, чтобы не съесть дважды). */
   onbTakeInput(userId: number): { kind: OnboardInputKind; value: string } | null {
     const row = this.onbGet(userId)
