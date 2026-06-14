@@ -228,8 +228,10 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
           </div>
         ) : !status.rightsOk ? (
           <p className="onb-note" style={{ color: '#e0506a', marginTop: 16 }}>
-            ⚠️ Бот в группе{status.title ? ` «${status.title}»` : ''}, но без прав. Сделайте его
-            администратором с правом «{LABELS[lang].manageTopics}» (шаг 4).
+            ⚠️ Бот добавлен в группу{status.title ? ` «${status.title}»` : ''} админом, но у него
+            выключено право <b>«{LABELS[lang].manageTopics}»</b>. Откройте права бота (шаг 4) и
+            включите именно этот переключатель — статус сразу станет зелёным. Темы в группе должны
+            быть включены (шаг 2).
           </p>
         ) : (
           <p className="guide-done" style={{ marginTop: 16 }}>
