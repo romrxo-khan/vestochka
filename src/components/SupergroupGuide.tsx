@@ -92,16 +92,20 @@ function Row({ label, hl, icon, chevron, toggle }: {
   )
 }
 
-function Phone({ title, rtl, children, tap }: {
+function Phone({ title, rtl, children, tap, barRight }: {
   title: string
   rtl: boolean
   children: React.ReactNode
   tap: string
+  barRight?: React.ReactNode
 }) {
   return (
     <div className="tg-mock">
       <div className="tg-phone" dir={rtl ? 'rtl' : 'ltr'}>
-        <div className="tg-bar">{title}</div>
+        <div className="tg-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>{title}</span>
+          {barRight}
+        </div>
         {children}
       </div>
       <div className="tg-tap">
@@ -166,11 +170,17 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
         <div className="guide-body">
           <div className="guide-cap">Создайте группу</div>
           <div className="guide-desc">
-            Откройте Telegram. На телефоне нажмите карандаш ✏️ (внизу справа), на компьютере — меню
-            ☰ (вверху слева) → «{L.newGroup}». Выберите любой контакт (потом можно убрать) → «Далее»
-            → введите название, например «Весточка» → создайте группу.
+            Откройте Telegram. На телефоне в списке чатов нажмите значок <b>✏️ вверху справа</b>{' '}
+            (компоновка, на некоторых телефонах — круглая кнопка внизу справа) → «{L.newGroup}».
+            Выберите любой контакт (потом можно убрать) → «Далее» → введите название, например
+            «Весточка» → создайте группу.
           </div>
-          <Phone title="☰  Telegram" rtl={rtl} tap={`Нажмите «${L.newGroup}»`}>
+          <Phone
+            title="Чаты"
+            rtl={rtl}
+            barRight={<span className="tg-compose">✏️</span>}
+            tap={`Нажмите ✏️ вверху справа → «${L.newGroup}»`}
+          >
             <Row label={L.newGroup} icon="👥" hl chevron />
             <Row label={L.contacts} icon="👤" />
             <Row label={L.calls} icon="📞" />
@@ -248,9 +258,13 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
             быть включены (шаг 2).
           </p>
         ) : (
-          <p className="guide-done" style={{ marginTop: 16 }}>
-            ✅ Группа{status.title ? ` «${status.title}»` : ''} подключена.
-          </p>
+          <div className="group-ok">
+            <span className="group-ok-check">✓</span>
+            <span>
+              Группа{status.title ? ` «${status.title}»` : ''} подключена — всё готово! Переходите к
+              шагу 4.
+            </span>
+          </div>
         )
       )}
       <p className="fine">
