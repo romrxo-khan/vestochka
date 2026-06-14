@@ -40,6 +40,7 @@ export interface User {
   group_id: string | null // id Telegram-супергруппы пользователя (куда роутить чаты MAX)
   group_title: string | null // название группы (для UI)
   group_ok: number // 1 — бот в группе админом с правом «Управление темами»
+  agent_state: string // none|provisioning|running|stopped — что реально крутит провижинер
   updated_at: string
 }
 
@@ -166,6 +167,8 @@ export class ControlDb {
     if (!has('group_id')) this.db.exec(`ALTER TABLE users ADD COLUMN group_id TEXT`)
     if (!has('group_title')) this.db.exec(`ALTER TABLE users ADD COLUMN group_title TEXT`)
     if (!has('group_ok')) this.db.exec(`ALTER TABLE users ADD COLUMN group_ok INTEGER NOT NULL DEFAULT 0`)
+    if (!has('agent_state'))
+      this.db.exec(`ALTER TABLE users ADD COLUMN agent_state TEXT NOT NULL DEFAULT 'none'`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_refcode ON users(referral_code) WHERE referral_code IS NOT NULL`,
     )
@@ -432,6 +435,39 @@ export class ControlDb {
   }
   pendingRestores(): User[] {
     return this.db.prepare(`SELECT * FROM users WHERE restore_pending = 1`).all() as unknown as User[]
+  }
+
+  /**
+   * Желаемый флот: кому ДОЛЖЕН крутиться MAX-агент. Критерий — онбординг доведён
+   * (group_ok=1 + max_phone) и доступ валиден (не suspended/cancelled, не teardown).
+   * Владельца (co-located router+agent) провижинер не трогает — исключается на уровне эндпоинта.
+   */
+  desiredAgents(): User[] {
+    return this.db
+      .prepare(
+        `SELECT * FROM users
+          WHERE group_ok = 1 AND max_phone IS NOT NULL AND group_id IS NOT NULL
+            AND teardown_pending = 0
+            AND status NOT IN ('suspended','cancelled')`,
+      )
+      .all() as unknown as User[]
+  }
+
+  /** Провижинер рапортует реальное состояние контейнера юзера. */
+  setAgentState(userId: number, state: 'none' | 'provisioning' | 'running' | 'stopped'): void {
+    this.update(userId, { agent_state: state })
+  }
+
+  /** Снос выполнен: снимаем флаг, помечаем агента остановленным. */
+  ackTeardown(userId: number): void {
+    this.update(userId, { teardown_pending: 0, agent_state: 'stopped' })
+    this.logEvent(userId, 'agent_torn_down', '')
+  }
+
+  /** Восстановление выполнено: снимаем флаг, агент снова запущен. */
+  ackRestore(userId: number): void {
+    this.update(userId, { restore_pending: 0, agent_state: 'running' })
+    this.logEvent(userId, 'agent_restored', '')
   }
 
   // ── Онбординг MAX (брокер кабинет↔контейнер) ───────────────────────────────
