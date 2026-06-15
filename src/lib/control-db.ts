@@ -440,15 +440,18 @@ export class ControlDb {
   }
 
   /**
-   * Желаемый флот: кому ДОЛЖЕН крутиться MAX-агент. Критерий — онбординг доведён
-   * (group_ok=1 + max_phone) и доступ валиден (не suspended/cancelled, не teardown).
-   * Владельца (co-located router+agent) провижинер не трогает — исключается на уровне эндпоинта.
+   * Желаемый флот: кому ДОЛЖЕН крутиться MAX-агент. Критерий — юзер НАЧАЛ подключать
+   * MAX (max_phone задан) и доступ валиден (не suspended/cancelled, не teardown).
+   * Триггер по max_phone (а не group_ok): в мульти-боксе агент сам онбордит MAX (S5) на
+   * Шаге 2 кабинета — он должен подняться РАНЬШЕ настройки группы (Шаг 3). group_id может
+   * быть null на момент спавна; провижинер пересоздаёт агента, когда группа появится.
+   * Владельца (co-located router+agent) провижинер не трогает — исключается на эндпоинте.
    */
   desiredAgents(): User[] {
     return this.db
       .prepare(
         `SELECT * FROM users
-          WHERE group_ok = 1 AND max_phone IS NOT NULL AND group_id IS NOT NULL
+          WHERE max_phone IS NOT NULL
             AND teardown_pending = 0
             AND status NOT IN ('suspended','cancelled')`,
       )
