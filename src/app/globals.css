@@ -176,9 +176,10 @@ form button:hover { background: var(--blue-deep); }
 footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12px; color: var(--soft); font-size: 13px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
 @media (max-width: 720px) {
+  .wrap { padding: 0 18px; }       /* больше места под контент на узких телефонах */
   .steps { grid-template-columns: 1fr; }
   .row { grid-template-columns: 44px 1fr; gap: 6px 18px; }
-  .cta { padding: 40px 24px; }
+  .cta { padding: 38px 22px; }
 }
 
 /* ============ блог ============ */
