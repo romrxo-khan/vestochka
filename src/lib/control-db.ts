@@ -30,6 +30,7 @@ export interface User {
   max_phone: string | null // номер, под которым юзер вошёл в MAX — уникален между аккаунтами
   tg_user_id: number | null // Telegram id (связка кабинет↔бот через /start <token>)
   tg_username: string | null
+  tg_link_pending: string | null // когда кабинет открыт на шаге привязки TG (для привязки по email)
   grace_until: string | null // конец grace-периода после триала (4 дня)
   last_reminder_at: string | null // когда слали последнее письмо-напоминание (max 1/день)
   teardown_pending: number // 1 — провижинеру снести MAX-профиль (неоплата)
@@ -171,6 +172,7 @@ export class ControlDb {
     if (!has('agent_state'))
       this.db.exec(`ALTER TABLE users ADD COLUMN agent_state TEXT NOT NULL DEFAULT 'none'`)
     if (!has('agent_url')) this.db.exec(`ALTER TABLE users ADD COLUMN agent_url TEXT`)
+    if (!has('tg_link_pending')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_link_pending TEXT`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_refcode ON users(referral_code) WHERE referral_code IS NOT NULL`,
     )
@@ -242,6 +244,33 @@ export class ControlDb {
     }
     this.logEvent(userId, 'tg_linked', String(tgUserId))
     return { ok: true }
+  }
+
+  /** Кабинет на шаге привязки TG (юзер ещё не связал) — отмечаем «ждёт привязку». */
+  markTgLinkPending(userId: number): void {
+    this.update(userId, { tg_link_pending: new Date().toISOString() })
+  }
+
+  /**
+   * Привязка по email (фолбэк, когда диплинк не доносит /start). Безопасность: связываем
+   * ТОЛЬКО если аккаунт недавно был активен в кабинете на шаге привязки (tg_link_pending) —
+   * это доказывает владение почтой (кабинет за OTP-кукой). Окно 30 минут.
+   */
+  linkByEmail(
+    email: string,
+    tgUserId: number,
+    tgUsername?: string,
+  ): { ok: boolean; reason?: string } {
+    const u = this.byEmailOrPhone(email.trim().toLowerCase())
+    if (!u) return { ok: false, reason: 'no_account' }
+    if (u.tg_user_id === tgUserId) return { ok: true } // уже привязан к этому же TG
+    const pendingMs = u.tg_link_pending ? Date.parse(u.tg_link_pending) : 0
+    if (!pendingMs || Date.now() - pendingMs > 30 * 60_000) {
+      return { ok: false, reason: 'not_pending' }
+    }
+    const r = this.linkTelegram(u.id, tgUserId, tgUsername)
+    if (r.ok) this.update(u.id, { tg_link_pending: null })
+    return r
   }
 
   byMaxPhone(phone: string): User | undefined {
