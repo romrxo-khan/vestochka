@@ -35,8 +35,9 @@ export async function POST(req: Request) {
   const removed = body.status === 'left' || body.status === 'kicked'
   if (removed || !body.groupId) {
     db.setGroup(user.id, null, null, false)
-  } else {
-    db.setGroup(user.id, String(body.groupId), body.title ?? null, Boolean(body.canManageTopics))
+    return NextResponse.json({ ok: true, matched: true })
   }
-  return NextResponse.json({ ok: true, matched: true })
+  const r = db.setGroup(user.id, String(body.groupId), body.title ?? null, Boolean(body.canManageTopics))
+  // conflict=true → группа уже за другим аккаунтом; роутер сообщит об этом в группу.
+  return NextResponse.json({ ok: true, matched: true, conflict: Boolean(r.conflict) })
 }

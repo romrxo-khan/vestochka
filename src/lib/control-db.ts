@@ -183,6 +183,24 @@ export class ControlDb {
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_max_phone ON users(max_phone) WHERE max_phone IS NOT NULL`,
     )
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_users_group ON users(group_id) WHERE group_id IS NOT NULL`)
+    // Одна Telegram-группа = один аккаунт (бэкстоп к проверке в setGroup). UNIQUE создаём
+    // только если нет существующих дублей — иначе boot бы упал; тогда логируем для ручного дедупа.
+    try {
+      const dup = this.db
+        .prepare(
+          `SELECT group_id FROM users WHERE group_id IS NOT NULL GROUP BY group_id HAVING COUNT(*) > 1 LIMIT 1`,
+        )
+        .get()
+      if (!dup) {
+        this.db.exec(
+          `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_group ON users(group_id) WHERE group_id IS NOT NULL`,
+        )
+      } else {
+        console.warn('[control-db] есть дубли group_id — UNIQUE-индекс не создан, нужен ручной дедуп')
+      }
+    } catch (e) {
+      console.warn('[control-db] не удалось создать uniq_users_group:', (e as Error)?.message ?? e)
+    }
   }
 
   byId(id: number): User | undefined {
@@ -658,13 +676,28 @@ export class ControlDb {
    * Авто-привязка группы: бот сообщает, что его добавили/изменили права в группе.
    * groupId=null (бота удалили) — очищаем. ok=true только если админ с «управлением темами».
    */
-  setGroup(userId: number, groupId: string | null, title: string | null, ok: boolean): void {
+  setGroup(
+    userId: number,
+    groupId: string | null,
+    title: string | null,
+    ok: boolean,
+  ): { ok: boolean; conflict?: boolean } {
+    // Группа уже привязана к ДРУГОМУ аккаунту — отказываем. Иначе её трафик ушёл бы
+    // чужому MAX (кросс-аренда). Правило: первый занявший группу владеет ею.
+    if (groupId) {
+      const owner = this.byGroupId(String(groupId))
+      if (owner && owner.id !== userId) {
+        this.logEvent(userId, 'group_conflict', String(groupId))
+        return { ok: false, conflict: true }
+      }
+    }
     this.update(userId, {
       group_id: groupId,
       group_title: groupId ? title : null,
       group_ok: groupId && ok ? 1 : 0,
     })
     this.logEvent(userId, groupId ? (ok ? 'group_ok' : 'group_added') : 'group_removed', String(groupId ?? ''))
+    return { ok: true }
   }
 
   daysRemaining(user: User): number {
