@@ -1,49 +1,49 @@
 /**
- * Наглядный мокап сервиса для лендинга: телефон с чатом Telegram, куда «Весточка»
- * пересылает сообщения из MAX (текст, голосовое, фото, ответ из Telegram).
- * Чисто презентационный (SVG/CSS), без данных — безопасно рендерить на сервере.
+ * Hero-инфографика: MAX → Весточка → Telegram. Показывает поток сообщений из MAX
+ * через сервис в Telegram + что именно передаётся. Чисто презентационный (CSS).
  */
 export default function HeroMock() {
   return (
-    <div className="mk" aria-hidden="true">
-      <div className="mk-phone">
-        <div className="mk-bar">
-          <div className="mk-ava">👨‍👩‍👧</div>
-          <div>
-            <div className="mk-bar-t">Семья</div>
-            <div className="mk-bar-s">пересылается из MAX</div>
+    <div aria-hidden="true">
+      <div className="flow">
+        <div className="flow-node flow-max">
+          <div className="flow-cap">MAX</div>
+          <div className="flow-bubbles">
+            <span className="fb fb-in" />
+            <span className="fb fb-in short" />
+            <span className="fb fb-in" />
           </div>
+          <div className="flow-sub">сообщения приходят в MAX</div>
         </div>
 
-        <div className="mk-chat">
-          <div className="mk-badge">📨 Весточка · из MAX в Telegram</div>
+        <div className="flow-arrow">→</div>
 
-          <div className="mk-b mk-in">
-            <div className="mk-name">👤 Мама</div>
-            Ты доехал? 🙂
-          </div>
-
-          <div className="mk-b mk-in mk-voice">
-            <div className="mk-name">👤 Мама</div>
-            <div className="mk-voice-row">
-              <span className="mk-play">▶</span>
-              <span className="mk-wave" />
-              <span className="mk-dur">0:08</span>
-            </div>
-          </div>
-
-          <div className="mk-b mk-out">Да, всё хорошо — спасибо! 🙌</div>
-
-          <div className="mk-b mk-in">
-            <div className="mk-name">👤 Папа</div>
-            <div className="mk-photo">
-              <span>📷 фото</span>
-            </div>
-            С рыбалки 🎣
-          </div>
-
-          <div className="mk-b mk-out">Красота! Спасибо, что прислал 🙌</div>
+        <div className="flow-node flow-vest">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="" width={42} height={42} className="flow-icon" />
+          <div className="flow-cap">Весточка</div>
+          <div className="flow-sub">пересылает мгновенно</div>
         </div>
+
+        <div className="flow-arrow">→</div>
+
+        <div className="flow-node flow-tg">
+          <div className="flow-cap">Telegram</div>
+          <div className="flow-bubbles">
+            <span className="fb fb-out" />
+            <span className="fb fb-in short" />
+            <span className="fb fb-out" />
+          </div>
+          <div className="flow-sub">в вашем Telegram ✓</div>
+        </div>
+      </div>
+
+      <div className="flow-chips">
+        <span className="flow-chip">💬 текст</span>
+        <span className="flow-chip">🎤 голосовые</span>
+        <span className="flow-chip">📷 фото</span>
+        <span className="flow-chip">⭕ кружки</span>
+        <span className="flow-chip">📎 файлы</span>
       </div>
     </div>
   )
