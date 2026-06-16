@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import crypto from 'node:crypto'
-import { getDb } from '@/lib/control-db'
-import { sendTrialEndingEmail, sendGraceEmail } from '@/lib/email'
+import { getDb, DUNNING_GRACE_DAYS } from '@/lib/control-db'
+import { notifyTrialEnding, notifyGrace, notifySuspended } from '@/lib/notify'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const GRACE_DAYS = 4
+const GRACE_DAYS = DUNNING_GRACE_DAYS
 const REMIND_WITHIN_DAYS = 3
 
 function authorized(req: Request): boolean {
@@ -33,36 +33,33 @@ async function run(req: Request): Promise<NextResponse> {
   const db = getDb()
   const out = { trialReminders: 0, movedToGrace: 0, graceReminders: 0, suspended: 0 }
 
+  // Уведомления идут в Telegram (основной канал) + email, если указан — см. lib/notify.
   for (const u of db.trialEndingSoon(REMIND_WITHIN_DAYS)) {
-    if (u.email) {
-      await sendTrialEndingEmail(u.email, db.daysRemaining(u)).catch(() => {})
-      db.markReminded(u.id)
-      out.trialReminders++
-    }
+    await notifyTrialEnding(u, db.daysRemaining(u)).catch(() => {})
+    db.markReminded(u.id)
+    out.trialReminders++
   }
 
   for (const u of db.moveExpiredTrialsToGrace(GRACE_DAYS)) {
-    if (u.email) {
-      await sendGraceEmail(u.email).catch(() => {})
-      db.markReminded(u.id)
-    }
+    await notifyGrace(u).catch(() => {})
+    db.markReminded(u.id)
     out.movedToGrace++
   }
 
+  // Сюда же попадают юзеры с провалом рекуррента (startGrace выставил past_due + grace_until).
   for (const u of db.graceReminders()) {
-    if (u.email) {
-      await sendGraceEmail(u.email).catch(() => {})
-      db.markReminded(u.id)
-      out.graceReminders++
-    }
+    await notifyGrace(u).catch(() => {})
+    db.markReminded(u.id)
+    out.graceReminders++
   }
 
   const suspended = db.expireGrace()
   out.suspended = suspended.length
-  if (suspended.length) {
-    // Провижинер читает teardown_pending и сносит профиль; здесь — лог для алерта.
-    console.log(`[dunning] suspend+teardown: ${suspended.map((u) => u.id).join(',')}`)
+  for (const u of suspended) {
+    await notifySuspended(u).catch(() => {})
+    // Провижинер читает teardown_pending и сносит профиль.
   }
+  if (suspended.length) console.log(`[dunning] suspend+teardown: ${suspended.map((u) => u.id).join(',')}`)
 
   return NextResponse.json({ ok: true, ...out })
 }

@@ -14,6 +14,9 @@ export type Plan = 'shared' | 'personal'
 export type Status = 'registered' | 'provisioning' | 'active' | 'suspended' | 'cancelled'
 export type PaymentStatus = 'none' | 'trialing' | 'active' | 'past_due' | 'cancelled'
 
+/** Сколько дней grace-периода (мягкая приостановка) после провала оплаты / конца триала. */
+export const DUNNING_GRACE_DAYS = 4
+
 export interface User {
   id: number
   email: string | null
@@ -471,6 +474,23 @@ export class ControlDb {
 
   markReminded(userId: number): void {
     this.update(userId, { last_reminder_at: new Date().toISOString() })
+  }
+
+  /**
+   * Провал списания (рекуррент): переводим в past_due и ЗАПУСКАЕМ grace-часы, чтобы крон
+   * dunning подхватил юзера (напоминания → снос). Идемпотентно: если grace уже идёт —
+   * не сдвигаем дедлайн (повторные webhook'и об отказе не продлевают доступ). Возвращает
+   * обновлённого юзера (для уведомления) или undefined, если юзера нет.
+   */
+  startGrace(userId: number, graceDays: number): User | undefined {
+    const u = this.byId(userId)
+    if (!u) return undefined
+    const patch: Record<string, unknown> = { payment_status: 'past_due' }
+    const running = u.grace_until && Date.parse(u.grace_until) > Date.now()
+    if (!running) patch.grace_until = new Date(Date.now() + graceDays * 86_400_000).toISOString()
+    this.update(userId, patch)
+    this.logEvent(userId, 'payment_failed')
+    return this.byId(userId)
   }
 
   /** Оплата прошла → активируем; если был suspended — ставим флаг восстановления профиля. */

@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
-import { getDb, type PaymentStatus } from '@/lib/control-db'
+import { getDb, type PaymentStatus, DUNNING_GRACE_DAYS } from '@/lib/control-db'
+import { notifyPaymentFailed, notifyReactivated } from '@/lib/notify'
+
+/** Был ли юзер в простое (past_due/suspended) — чтобы поприветствовать восстановление. */
+function wasLapsed(u: { payment_status?: string; status?: string } | undefined): boolean {
+  return u?.payment_status === 'past_due' || u?.status === 'suspended'
+}
 
 export const runtime = 'nodejs'
 
@@ -52,10 +58,12 @@ export async function POST(req: Request) {
         const customerId = typeof session.customer === 'string' ? session.customer : null
         const subId = typeof session.subscription === 'string' ? session.subscription : null
         if (userId && customerId) {
+          const before = db.byId(userId)
           db.setPayment(userId, { provider_customer_id: customerId, provider_subscription_id: subId })
           let end: string | null = null
           if (subId) end = periodEnd(await stripe.subscriptions.retrieve(subId))
           db.activateSubscription(userId, end, 'stripe') // оплачено сразу (триал у нас в БД)
+          if (wasLapsed(before)) await notifyReactivated(db.byId(userId)!)
         }
         break
       }
@@ -64,7 +72,9 @@ export async function POST(req: Request) {
         const customerId = typeof inv.customer === 'string' ? inv.customer : null
         const user = customerId ? db.byProviderCustomer(customerId) : undefined
         if (user && (inv.amount_paid ?? 0) > 0) {
+          const lapsed = wasLapsed(user)
           db.activateSubscription(user.id, iso(inv.lines?.data?.[0]?.period?.end), 'stripe')
+          if (lapsed) await notifyReactivated(db.byId(user.id)!)
         }
         break
       }
@@ -72,7 +82,11 @@ export async function POST(req: Request) {
         const inv = event.data.object as Stripe.Invoice
         const customerId = typeof inv.customer === 'string' ? inv.customer : null
         const user = customerId ? db.byProviderCustomer(customerId) : undefined
-        if (user) db.setPayment(user.id, { payment_status: 'past_due' })
+        if (user) {
+          // past_due + ЗАПУСК grace-часов (иначе крон dunning юзера не подхватит) + сразу уведомить.
+          const updated = db.startGrace(user.id, DUNNING_GRACE_DAYS)
+          if (updated) await notifyPaymentFailed(updated, DUNNING_GRACE_DAYS)
+        }
         break
       }
       case 'customer.subscription.updated': {
