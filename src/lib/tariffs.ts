@@ -8,7 +8,7 @@ export interface Tariff {
   id: Plan
   name: string
   rub: number // ₽/мес (оплата российской картой)
-  usd: number // $/мес (оплата зарубежной картой, Stripe)
+  eur: number // €/мес (оплата зарубежной картой, Stripe)
   tagline: string
   features: string[]
   highlight?: boolean
@@ -19,7 +19,7 @@ export const TARIFFS: Tariff[] = [
     id: 'shared',
     name: 'Базовый',
     rub: 399,
-    usd: 4.99,
+    eur: 4.99,
     tagline: 'Всё, чтобы читать MAX в Telegram',
     features: [
       'Сообщения из MAX приходят в ваш Telegram',
@@ -34,7 +34,7 @@ export const TARIFFS: Tariff[] = [
     id: 'personal',
     name: 'Персональный',
     rub: 999,
-    usd: 11.99,
+    eur: 11.99,
     tagline: 'Всё из «Базового» + выделенный профиль',
     features: [
       'Отдельный выделенный профиль — выше приватность',
@@ -46,6 +46,6 @@ export const TARIFFS: Tariff[] = [
 ]
 
 /** Цена тарифа строкой для выбранной валюты. */
-export function priceLabel(t: Tariff, currency: 'rub' | 'usd'): string {
-  return currency === 'rub' ? `${t.rub} ₽/мес` : `$${t.usd.toFixed(2)}/мес`
+export function priceLabel(t: Tariff, currency: 'rub' | 'eur'): string {
+  return currency === 'rub' ? `${t.rub} ₽/мес` : `€${t.eur.toFixed(2)}/мес`
 }

@@ -9,8 +9,8 @@ export default function Tariffs({
   onPick,
   busy,
 }: {
-  /** 'rub' | 'usd' — одна валюта; 'both' — показать обе (для лендинга). */
-  currency: 'rub' | 'usd' | 'both'
+  /** 'rub' | 'eur' — одна валюта; 'both' — показать обе (для лендинга). */
+  currency: 'rub' | 'eur' | 'both'
   onPick?: (plan: Plan) => void
   busy?: boolean
 }) {
@@ -23,7 +23,7 @@ export default function Tariffs({
             {currency === 'both' ? (
               <>
                 {t.rub} ₽<span className="tariff-per">/мес</span>
-                <span className="tariff-alt"> · ${t.usd.toFixed(2)}/мес</span>
+                <span className="tariff-alt"> · €{t.eur.toFixed(2)}/мес</span>
               </>
             ) : (
               priceLabel(t, currency)

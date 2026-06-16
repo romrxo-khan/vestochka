@@ -169,7 +169,7 @@ export default function RegisterCard() {
                 </button>
                 <button type="button" className="pay-btn alt" onClick={() => setCardType('foreign')}>
                   <span className="pay-btn-title">🌍 Зарубежная карта</span>
-                  <span className="pay-btn-sub">оплата в долларах</span>
+                  <span className="pay-btn-sub">оплата в евро</span>
                 </button>
               </>
             ) : cardType === 'ru' ? (
@@ -206,10 +206,10 @@ export default function RegisterCard() {
               // Зарубежная: Stripe-триал — карта сейчас, списание через 7 дней.
               <>
                 <p className="lead">
-                  Выберите тариф — зарубежная карта ($), <strong>первая неделя бесплатно</strong>,
+                  Выберите тариф — зарубежная карта (€), <strong>первая неделя бесплатно</strong>,
                   спишем только через 7 дней. Отменить можно в любой момент.
                 </p>
-                <Tariffs currency="usd" busy={checkoutBusy} onPick={startStripe} />
+                <Tariffs currency="eur" busy={checkoutBusy} onPick={startStripe} />
                 <button
                   type="button"
                   className="link-back"

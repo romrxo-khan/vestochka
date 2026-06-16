@@ -47,8 +47,8 @@ export default function OfferPage() {
           <ul>
             {TARIFFS.map((t) => (
               <li key={t.id}>
-                <strong>{t.name}</strong> — {t.rub} ₽/мес (российская карта) или $
-                {t.usd.toFixed(2)}/мес (зарубежная карта). {t.tagline}.
+                <strong>{t.name}</strong> — {t.rub} ₽/мес (российская карта) или €
+                {t.eur.toFixed(2)}/мес (зарубежная карта). {t.tagline}.
               </li>
             ))}
           </ul>

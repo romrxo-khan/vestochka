@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import RegisterCard from '@/components/RegisterCard'
 import Tariffs from '@/components/Tariffs'
+import HeroMock from '@/components/HeroMock'
 
 export default function Home() {
   return (
@@ -19,24 +20,27 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="hero">
-        <span className="eyebrow">MAX → Telegram</span>
-        <h1>
-          Близкие пишут в&nbsp;MAX. Вы отвечаете <span>из&nbsp;Telegram</span>
-        </h1>
-        <p className="sub">
-          Сообщения из MAX приходят в привычный Telegram. Отвечайте текстом, голосом, фото и
-          кружками — <strong className="hl">не устанавливая MAX на телефон</strong>.
-        </p>
-        <div className="act">
-          <a className="button" href="#register">
-            Регистрация
-          </a>
-          <a className="button-ghost" href="#register">
-            Войти
-          </a>
+      <div className="hero-grid">
+        <div className="hero">
+          <span className="eyebrow">MAX → Telegram</span>
+          <h1>
+            Близкие пишут в&nbsp;MAX. Вы отвечаете <span>из&nbsp;Telegram</span>
+          </h1>
+          <p className="sub">
+            Сообщения из MAX приходят в привычный Telegram. Отвечайте текстом, голосом, фото и
+            кружками — <strong className="hl">не устанавливая MAX на телефон</strong>.
+          </p>
+          <div className="act">
+            <a className="button" href="#register">
+              Регистрация
+            </a>
+            <a className="button-ghost" href="#register">
+              Войти
+            </a>
+          </div>
+          <p className="hero-note">Первая неделя бесплатно · MAX ставить не нужно</p>
         </div>
-        <p className="hero-note">Первая неделя бесплатно · MAX ставить не нужно</p>
+        <HeroMock />
       </div>
 
       <section style={{ paddingTop: 40 }}>
@@ -113,38 +117,15 @@ export default function Home() {
       </section>
 
       <section style={{ paddingTop: 56 }}>
-        <span className="eyebrow">Что важно знать</span>
-        <div className="limits">
-          <div className="limit">
-            <h3>История переписки не переносится</h3>
-            <p>
-              Мост пересылает только новые сообщения — с момента подключения. Всё, что было в MAX
-              раньше, остаётся в самом MAX: мы не выкачиваем вашу старую переписку.
-            </p>
-          </div>
-          <div className="limit">
-            <h3>Коды для входа на Госуслуги приходят только в приложении MAX</h3>
-            <p>
-              MAX намеренно показывает эти коды лишь на телефоне — это его защита, и обойти её мы не
-              пытаемся. Бот предупредит, что код запрошен, но сам код смотрите в приложении MAX.
-            </p>
-          </div>
-          <div className="limit">
-            <h3>Стикеры и реакции пока не передаются</h3>
-            <p>
-              Текст, ответы-цитаты, фото, голосовые, видео-кружки и файлы работают в обе стороны.
-              Стикеры и реакции — в планах.
-            </p>
-          </div>
-        </div>
+        <RegisterCard />
       </section>
 
       <section style={{ paddingTop: 56 }} id="tariffs">
         <span className="eyebrow">Тарифы</span>
         <h2 className="section-h">Простая помесячная подписка</h2>
         <p className="section-sub">
-          Первая неделя — бесплатно. Подписку можно отменить в любой момент. Оплата российской
-          (₽) или зарубежной картой ($).
+          <strong>Первая неделя — бесплатно.</strong> Подписку можно отменить в любой момент.
+          Оплата российской (₽) или зарубежной картой (€).
         </p>
         <Tariffs currency="both" />
         <p className="section-sub" style={{ marginTop: 18 }}>
@@ -155,14 +136,19 @@ export default function Home() {
         </p>
       </section>
 
-      <section style={{ paddingTop: 56 }}>
-        <RegisterCard />
+      <section style={{ paddingTop: 44 }}>
+        <div className="act" style={{ justifyContent: 'center' }}>
+          <Link href="/details" className="button-ghost">
+            Что важно знать о сервисе →
+          </Link>
+        </div>
       </section>
 
       <footer>
         <span>
-          <Link href="/blog">Блог</Link> · <Link href="/editorial-policy">Редполитика</Link> ·{' '}
-          <Link href="/offer">Оферта</Link> · <Link href="/requisites">Реквизиты</Link>
+          <Link href="/details">О сервисе</Link> · <Link href="/blog">Блог</Link> ·{' '}
+          <Link href="/editorial-policy">Редполитика</Link> · <Link href="/offer">Оферта</Link> ·{' '}
+          <Link href="/requisites">Реквизиты</Link>
         </span>
         <span>Не является официальным сервисом MAX.</span>
       </footer>
