@@ -8,8 +8,11 @@ export const runtime = 'nodejs'
 export async function GET() {
   const user = await cabinetUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  // Юзер на шаге привязки и ещё не связан — отмечаем «ждёт привязку», чтобы разрешить
-  // привязку по email через бота (фолбэк, когда диплинк не доносит /start).
-  if (!user.tg_user_id) getDb().markTgLinkPending(user.id)
-  return NextResponse.json({ ok: true, linked: Boolean(user.tg_user_id) })
+  // Не связан — выдаём одноразовый секретный код привязки (показываем в кабинете;
+  // юзер шлёт его боту как фолбэк, когда диплинк не доносит /start).
+  if (!user.tg_user_id) {
+    const linkCode = getDb().issueTgLinkCode(user.id)
+    return NextResponse.json({ ok: true, linked: false, linkCode })
+  }
+  return NextResponse.json({ ok: true, linked: true })
 }

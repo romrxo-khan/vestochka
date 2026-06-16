@@ -15,31 +15,31 @@ function authorized(req: Request): boolean {
 }
 
 /**
- * POST { email, tgUserId, tgUsername? } — бот привязывает Telegram по email (фолбэк,
- * когда диплинк не доносит /start). Безопасность — в linkByEmail: связываем только если
- * аккаунт недавно был активен в кабинете на шаге привязки (доказывает владение почтой).
+ * POST { code, tgUserId, tgUsername? } — бот привязывает Telegram по одноразовому коду
+ * из кабинета (фолбэк, когда диплинк не доносит /start). Код секретен и одноразовый —
+ * захват чужого аккаунта невозможен (в отличие от привязки по email).
  */
 export async function POST(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
-  let body: { email?: string; tgUserId?: number; tgUsername?: string }
+  let body: { code?: string; tgUserId?: number; tgUsername?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ ok: false, error: 'bad_json' }, { status: 400 })
   }
-  const email = (body.email ?? '').trim()
-  if (!email || !body.tgUserId) {
+  const code = (body.code ?? '').trim()
+  if (!code || !body.tgUserId) {
     return NextResponse.json({ ok: false, error: 'bad_args' }, { status: 400 })
   }
-  const r = getDb().linkByEmail(email, Number(body.tgUserId), body.tgUsername)
+  const r = getDb().linkByCode(code, Number(body.tgUserId), body.tgUsername)
   if (!r.ok) {
     const message =
-      r.reason === 'no_account'
-        ? 'Аккаунт с такой почтой не найден. Проверьте, что вводите почту регистрации на vestochka.uk.'
-        : r.reason === 'not_pending'
-          ? 'Сначала откройте кабинет на vestochka.uk/cabinet (шаг «Подключите Telegram»), затем пришлите почту сюда.'
+      r.reason === 'no_code' || r.reason === 'bad_code'
+        ? 'Код не найден. Скопируйте код из кабинета (шаг «Подключите Telegram») и пришлите его сюда.'
+        : r.reason === 'expired'
+          ? 'Код устарел. Откройте кабинет ещё раз — там будет свежий код.'
           : r.reason === 'tg_taken'
             ? 'Этот Telegram уже привязан к другому аккаунту.'
             : 'Не удалось привязать. Попробуйте ещё раз.'

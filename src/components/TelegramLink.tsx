@@ -19,6 +19,7 @@ export default function TelegramLink({
 }) {
   const [linked, setLinked] = useState(initialLinked)
   const [copied, setCopied] = useState(false)
+  const [code, setCode] = useState('') // одноразовый код привязки из кабинета
   const router = useRouter()
 
   useEffect(() => {
@@ -30,11 +31,14 @@ export default function TelegramLink({
         if (d.linked) {
           setLinked(true)
           router.refresh() // обновляем страницу (Шаг 3 зависит от привязки)
+        } else if (d.linkCode) {
+          setCode(d.linkCode)
         }
       } catch {
         /* нет связи — попробуем на следующем тике */
       }
     }
+    void check() // сразу, не ждём первый тик (чтобы показать код без задержки)
     const id = setInterval(check, 3000)
     return () => clearInterval(id)
   }, [linked, router])
@@ -49,12 +53,10 @@ export default function TelegramLink({
 
   if (!linkUrl) return <p className="fine">Бот скоро будет доступен здесь.</p>
 
-  // Команда-фолбэк: если бот уже открыт, Telegram не пересылает /start — даём отправить вручную.
-  const token = linkUrl.split('start=')[1] ?? ''
-  const command = `/start ${token}`
+  // Фолбэк: если бот уже открыт, Telegram не пересылает /start — юзер шлёт боту КОД.
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(command)
+      await navigator.clipboard.writeText(code)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -76,11 +78,11 @@ export default function TelegramLink({
         <span className="pay-btn-sub">откроется в новой вкладке — подтвердим автоматически</span>
       </a>
       <p className="fine" style={{ marginTop: 12 }}>
-        Бот уже был открыт и кнопка «Start» не появилась? Отправьте ему эту команду:
+        Кнопка «Start» не появилась (бот уже был открыт)? Пришлите боту этот код:
       </p>
       <div className="tg-cmd">
-        <code>{command}</code>
-        <button type="button" onClick={() => void copy()}>
+        <code>{code || '…'}</code>
+        <button type="button" onClick={() => void copy()} disabled={!code}>
           {copied ? 'Скопировано ✓' : 'Скопировать'}
         </button>
       </div>

@@ -30,7 +30,8 @@ export interface User {
   max_phone: string | null // номер, под которым юзер вошёл в MAX — уникален между аккаунтами
   tg_user_id: number | null // Telegram id (связка кабинет↔бот через /start <token>)
   tg_username: string | null
-  tg_link_pending: string | null // когда кабинет открыт на шаге привязки TG (для привязки по email)
+  tg_link_pending: string | null // когда выдан код привязки TG (TTL-метка)
+  tg_link_code: string | null // одноразовый секретный код привязки TG (показан в кабинете)
   grace_until: string | null // конец grace-периода после триала (4 дня)
   last_reminder_at: string | null // когда слали последнее письмо-напоминание (max 1/день)
   teardown_pending: number // 1 — провижинеру снести MAX-профиль (неоплата)
@@ -173,6 +174,7 @@ export class ControlDb {
       this.db.exec(`ALTER TABLE users ADD COLUMN agent_state TEXT NOT NULL DEFAULT 'none'`)
     if (!has('agent_url')) this.db.exec(`ALTER TABLE users ADD COLUMN agent_url TEXT`)
     if (!has('tg_link_pending')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_link_pending TEXT`)
+    if (!has('tg_link_code')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_link_code TEXT`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_refcode ON users(referral_code) WHERE referral_code IS NOT NULL`,
     )
@@ -246,30 +248,40 @@ export class ControlDb {
     return { ok: true }
   }
 
-  /** Кабинет на шаге привязки TG (юзер ещё не связал) — отмечаем «ждёт привязку». */
-  markTgLinkPending(userId: number): void {
-    this.update(userId, { tg_link_pending: new Date().toISOString() })
+  /**
+   * Выдаёт (или переиспользует ещё не истёкший) одноразовый СЕКРЕТНЫЙ код привязки TG
+   * для кабинета. Юзер шлёт его боту → linkByCode. Код секретен (CSPRNG), поэтому привязка
+   * по нему безопасна — в отличие от email, который не секрет. TTL 30 минут.
+   */
+  issueTgLinkCode(userId: number): string {
+    const u = this.byId(userId)
+    const pendingMs = u?.tg_link_pending ? Date.parse(u.tg_link_pending) : 0
+    if (u?.tg_link_code && pendingMs && Date.now() - pendingMs < 30 * 60_000) {
+      return u.tg_link_code // ещё валиден — не плодим новые коды на каждый поллинг
+    }
+    // 8 символов из безопасного алфавита (без неоднозначных 0/O/1/I) ≈ 32^8 вариантов.
+    const code = Array.from(crypto.randomBytes(8))
+      .map((b) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 32])
+      .join('')
+    this.update(userId, { tg_link_code: code, tg_link_pending: new Date().toISOString() })
+    return code
   }
 
   /**
-   * Привязка по email (фолбэк, когда диплинк не доносит /start). Безопасность: связываем
-   * ТОЛЬКО если аккаунт недавно был активен в кабинете на шаге привязки (tg_link_pending) —
-   * это доказывает владение почтой (кабинет за OTP-кукой). Окно 30 минут.
+   * Привязка по одноразовому коду из кабинета (фолбэк, когда диплинк не доносит /start).
+   * Код секретен и одноразовый → захват чужого аккаунта невозможен (в отличие от email).
    */
-  linkByEmail(
-    email: string,
-    tgUserId: number,
-    tgUsername?: string,
-  ): { ok: boolean; reason?: string } {
-    const u = this.byEmailOrPhone(email.trim().toLowerCase())
-    if (!u) return { ok: false, reason: 'no_account' }
-    if (u.tg_user_id === tgUserId) return { ok: true } // уже привязан к этому же TG
+  linkByCode(code: string, tgUserId: number, tgUsername?: string): { ok: boolean; reason?: string } {
+    const norm = code.trim().toUpperCase().replace(/\s+/g, '')
+    if (norm.length < 6) return { ok: false, reason: 'bad_code' }
+    const u = this.db.prepare(`SELECT * FROM users WHERE tg_link_code = ? LIMIT 1`).get(norm) as
+      | User
+      | undefined
+    if (!u) return { ok: false, reason: 'no_code' }
     const pendingMs = u.tg_link_pending ? Date.parse(u.tg_link_pending) : 0
-    if (!pendingMs || Date.now() - pendingMs > 30 * 60_000) {
-      return { ok: false, reason: 'not_pending' }
-    }
+    if (!pendingMs || Date.now() - pendingMs > 30 * 60_000) return { ok: false, reason: 'expired' }
     const r = this.linkTelegram(u.id, tgUserId, tgUsername)
-    if (r.ok) this.update(u.id, { tg_link_pending: null })
+    if (r.ok) this.update(u.id, { tg_link_code: null, tg_link_pending: null }) // одноразовый
     return r
   }
 
