@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     if (!kind || !value) {
       return NextResponse.json({ ok: false, error: 'missing_input' }, { status: 400 })
     }
-    if (!['phone', 'code', 'password', 'name', 'captcha'].includes(kind)) {
+    if (!['phone', 'code', 'password', 'name', 'captcha', 'resend'].includes(kind)) {
       return NextResponse.json({ ok: false, error: 'bad_kind' }, { status: 400 })
     }
     if (kind === 'phone') {
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       db.onbSetInput(user.id, 'phone', claim.phone)
       return NextResponse.json({ ok: true })
     }
-    db.onbSetInput(user.id, kind as 'code' | 'password' | 'name' | 'captcha', value)
+    db.onbSetInput(user.id, kind as 'code' | 'password' | 'name' | 'captcha' | 'resend', value)
     return NextResponse.json({ ok: true })
   }
 

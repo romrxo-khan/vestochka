@@ -74,6 +74,7 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
   const [value, setValue] = useState('') // код / пароль / имя
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [resendMsg, setResendMsg] = useState('') // фидбек после «Отправить код заново»
   const [active, setActive] = useState(false) // пошёл ли онбординг (включает опрос)
   const [elapsedSec, setElapsedSec] = useState(0) // сколько идём в «рабочем» состоянии
   const [submitted, setSubmitted] = useState(false) // ввод отправлен, ждём обработки контейнером
@@ -195,6 +196,17 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
     }
   }
 
+  // Запросить новый код: контейнер нажмёт «Получить новый код» на экране MAX.
+  async function resendCode() {
+    setResendMsg('Запрашиваем новый код…')
+    const r = await post({ action: 'input', kind: 'resend', value: '1' })
+    setResendMsg(
+      r.ok
+        ? 'Запрос отправлен. Новый код придёт в течение минуты (если идёт таймер — чуть позже).'
+        : 'Не удалось запросить. Попробуйте ещё раз.',
+    )
+  }
+
   const errBox = error && (
     <p className="fine" style={{ color: '#e0506a' }}>
       {error}
@@ -280,6 +292,21 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
                 {busy ? 'Отправляем…' : 'Продолжить'}
               </button>
             </form>
+            {state === 'CODE_REQUIRED' && (
+              <p className="fine" style={{ marginTop: 10 }}>
+                Код не пришёл?{' '}
+                <button
+                  type="button"
+                  onClick={() => void resendCode()}
+                  style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', padding: 0, font: 'inherit' }}
+                >
+                  Отправить заново
+                </button>
+                {resendMsg && (
+                  <span style={{ display: 'block', marginTop: 6, color: '#8fb6ff' }}>{resendMsg}</span>
+                )}
+              </p>
+            )}
           </>
         )}
         {errBox}

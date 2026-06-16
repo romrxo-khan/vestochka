@@ -79,7 +79,7 @@ export type OnboardState =
   | 'ONLINE'
   | 'ERROR'
 
-export type OnboardInputKind = 'phone' | 'code' | 'password' | 'name' | 'captcha'
+export type OnboardInputKind = 'phone' | 'code' | 'password' | 'name' | 'captcha' | 'resend'
 
 export interface OnboardRow {
   user_id: number
