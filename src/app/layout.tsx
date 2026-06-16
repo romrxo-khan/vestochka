@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     name: 'Весточка',
     url: 'https://vestochka.uk',
     description: DESCRIPTION,
-    logo: 'https://vestochka.uk/favicon.ico',
+    logo: 'https://vestochka.uk/logo.png',
   }
 
   return (

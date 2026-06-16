@@ -64,7 +64,7 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
       '@type': 'Organization',
       name: 'Весточка',
       url: SITE,
-      logo: { '@type': 'ImageObject', url: `${SITE}/favicon.ico` },
+      logo: { '@type': 'ImageObject', url: `${SITE}/logo.png` },
     },
     mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
   }
