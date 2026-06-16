@@ -42,7 +42,7 @@ export default function HeroMock() {
             С рыбалки 🎣
           </div>
 
-          <div className="mk-b mk-out">Огонь! Вечером наберу 📞</div>
+          <div className="mk-b mk-out">Красота! Спасибо, что прислал 🙌</div>
         </div>
       </div>
     </div>
