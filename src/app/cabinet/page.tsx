@@ -59,11 +59,10 @@ export default async function CabinetPage({
   const tgLinked = Boolean(user?.tg_user_id)
   const linkUrl = user && botUser ? `https://t.me/${botUser}?start=${signLinkToken(user.id)}` : null
   const maxOnline = user ? db.onbGet(user.id)?.state === 'ONLINE' : false
-  // Кабинет (а не онбординг) показываем, если юзер нажал «Готово» ИЛИ всё уже подключено.
-  const fullyConnected = user
-    ? tgLinked && Boolean(user.max_phone) && user.group_ok === 1
-    : false
-  const showCabinet = user ? user.setup_done === 1 || fullyConnected : false
+  // Личный кабинет показываем ТОЛЬКО после ручного «Готово» (setup_done). Раньше
+  // авто-переключали по «всё подключено» → юзера выкидывало сразу после Шага 3, не дав
+  // прочитать Шаг 4. Теперь выход из онбординга — только когда юзер сам нажмёт «Готово».
+  const showCabinet = user ? user.setup_done === 1 : false
   const refCode = user ? db.ensureReferralCode(user.id) : ''
   const siteUrl = (process.env.SITE_URL ?? 'https://vestochka.uk').replace(/\/$/, '')
   const inviteUrl = `${siteUrl}/?ref=${refCode}`
@@ -152,7 +151,8 @@ export default async function CabinetPage({
               <div className="head">Подключите MAX</div>
               <p className="lead">
                 Введите номер телефона MAX. По нему подключим ваш аккаунт — сообщения будут приходить
-                в Telegram. Нет MAX? Зарегистрируем прямо здесь.
+                в Telegram. Нет аккаунта MAX? Сначала зарегистрируйтесь в приложении MAX или на
+                web.max.ru, затем вернитесь сюда и подключите.
               </p>
               <MaxConnect sessionId={session_id ?? ''} canConnect={Boolean(user)} />
             </section>
