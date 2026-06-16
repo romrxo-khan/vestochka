@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import RegisterCard from '@/components/RegisterCard'
+import Tariffs from '@/components/Tariffs'
 
 export default function Home() {
   return (
@@ -138,6 +139,22 @@ export default function Home() {
         </div>
       </section>
 
+      <section style={{ paddingTop: 56 }} id="tariffs">
+        <span className="eyebrow">Тарифы</span>
+        <h2 className="section-h">Простая помесячная подписка</h2>
+        <p className="section-sub">
+          Первая неделя — бесплатно. Подписку можно отменить в любой момент. Оплата российской
+          (₽) или зарубежной картой ($).
+        </p>
+        <Tariffs currency="both" />
+        <p className="section-sub" style={{ marginTop: 18 }}>
+          <strong>Как вы получаете услугу.</strong> «Весточка» — онлайн-сервис, без физической
+          доставки. Сразу после оплаты доступ открывается в личном кабинете: подключаете MAX и
+          свой Telegram — и сообщения из MAX начинают приходить в Telegram. Услуга оказывается
+          непрерывно, пока активна подписка.
+        </p>
+      </section>
+
       <section style={{ paddingTop: 56 }}>
         <RegisterCard />
       </section>
@@ -145,7 +162,7 @@ export default function Home() {
       <footer>
         <span>
           <Link href="/blog">Блог</Link> · <Link href="/editorial-policy">Редполитика</Link> ·{' '}
-          <Link href="/requisites">Реквизиты</Link>
+          <Link href="/offer">Оферта</Link> · <Link href="/requisites">Реквизиты</Link>
         </span>
         <span>Не является официальным сервисом MAX.</span>
       </footer>

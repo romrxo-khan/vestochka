@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Turnstile from './Turnstile'
+import Tariffs from './Tariffs'
+import type { Plan } from '@/lib/tariffs'
 
 type Step = 'contact' | 'code' | 'done'
 
@@ -40,18 +42,18 @@ export default function RegisterCard() {
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const stripeOn = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  const lavaOn = Boolean(process.env.NEXT_PUBLIC_LAVA_ENABLED)
-  const payOn = stripeOn || lavaOn
+  const yookassaOn = Boolean(process.env.NEXT_PUBLIC_YOOKASSA_ENABLED)
+  const payOn = stripeOn || yookassaOn
 
-  // Оплата российской картой — Lava.top: создаёт счёт и редиректит на оплату.
-  async function startLava() {
+  // Открывает оплату выбранного тарифа у нужного провайдера и редиректит на его страницу.
+  async function startCheckout(endpoint: string, plan: Plan) {
     setError('')
     setCheckoutBusy(true)
     try {
-      const res = await fetch('/api/payments/lava/checkout', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: contact, plan: 'shared' }),
+        body: JSON.stringify({ email: contact, plan }),
       })
       const data = await res.json()
       if (!res.ok || !data.ok || !data.url) {
@@ -65,29 +67,8 @@ export default function RegisterCard() {
       setCheckoutBusy(false)
     }
   }
-
-  // «Привязать карту»: Stripe Checkout (подписка, неделя триала). Редирект на страницу Stripe.
-  async function startCheckout() {
-    setError('')
-    setCheckoutBusy(true)
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: contact, plan: 'shared' }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.ok || !data.url) {
-        setError('Не удалось открыть оплату. Попробуйте ещё раз.')
-        return
-      }
-      window.location.href = data.url
-    } catch {
-      setError('Нет связи с сервером. Попробуйте ещё раз.')
-    } finally {
-      setCheckoutBusy(false)
-    }
-  }
+  const startStripe = (plan: Plan) => startCheckout('/api/stripe/checkout', plan)
+  const startYooKassa = (plan: Plan) => startCheckout('/api/payments/yookassa/checkout', plan)
 
   async function sendCode(e?: React.FormEvent) {
     e?.preventDefault()
@@ -176,73 +157,67 @@ export default function RegisterCard() {
                 🎁 Код приглашения принят — у вас <strong>2 недели бесплатно</strong>.
               </p>
             )}
-            {lavaOn && stripeOn && !cardType ? (
+            {!cardType ? (
               // Сначала простой выбор карты — без обещаний и без преимуществ способов.
               <>
                 <p className="lead">
-                  Почта подтверждена ✅ Пробный период активен. Какой способ оплаты предпочитаете?
+                  Почта подтверждена ✅ Пробный период активен. Какой картой будете платить?
                 </p>
                 <button type="button" className="pay-btn" onClick={() => setCardType('ru')}>
                   <span className="pay-btn-title">🇷🇺 Российская карта</span>
+                  <span className="pay-btn-sub">оплата в рублях</span>
                 </button>
                 <button type="button" className="pay-btn alt" onClick={() => setCardType('foreign')}>
                   <span className="pay-btn-title">🌍 Зарубежная карта</span>
+                  <span className="pay-btn-sub">оплата в долларах</span>
                 </button>
               </>
-            ) : cardType === 'ru' || (lavaOn && !stripeOn) ? (
-              // РФ: неделя уже идёт (без карты), оплата при готовности.
+            ) : cardType === 'ru' ? (
+              // РФ: показываем тарифы в рублях. ЮKassa подключается за флагом.
               <>
-                <p className="lead">
-                  Бесплатная неделя активна ✅ Оплатите российской картой, когда будете готовы —
-                  спишем при оформлении, дальше помесячно.
-                </p>
-                <button type="button" className="pay-btn" onClick={startLava} disabled={checkoutBusy}>
-                  <span className="pay-btn-title">
-                    {checkoutBusy ? 'Открываем оплату…' : 'Оплатить российской картой'}
-                  </span>
-                  {!checkoutBusy && (
-                    <span className="pay-btn-sub">карты РФ · МИР, Visa, Mastercard</span>
-                  )}
-                </button>
-                {/* Оплата РФ не берётся сразу — даём пропустить и сразу подключить MAX. */}
-                <a href="/cabinet" className="pay-btn alt" style={{ textDecoration: 'none' }}>
-                  <span className="pay-btn-title">Пропустить — подключить MAX</span>
-                  <span className="pay-btn-sub">оплатите позже, неделя уже идёт</span>
-                </a>
-                {stripeOn && (
-                  <button
-                    type="button"
-                    className="link-back"
-                    onClick={() => setCardType(null)}
-                    style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 8 }}
-                  >
-                    ← другой способ оплаты
-                  </button>
+                <p className="lead">Выберите тариф — оплата российской картой (₽):</p>
+                <Tariffs
+                  currency="rub"
+                  busy={checkoutBusy}
+                  onPick={yookassaOn ? startYooKassa : undefined}
+                />
+                {!yookassaOn && (
+                  <p className="lead" style={{ marginTop: 12 }}>
+                    Оплата российской картой скоро будет доступна. Бесплатная неделя уже идёт —
+                    можно подключать MAX прямо сейчас.
+                  </p>
                 )}
+                {!yookassaOn && (
+                  <a href="/cabinet" className="pay-btn" style={{ textDecoration: 'none' }}>
+                    <span className="pay-btn-title">Подключить MAX</span>
+                    <span className="pay-btn-sub">оплатите позже, неделя уже идёт</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className="link-back"
+                  onClick={() => setCardType(null)}
+                  style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 8 }}
+                >
+                  ← другой способ оплаты
+                </button>
               </>
             ) : (
               // Зарубежная: Stripe-триал — карта сейчас, списание через 7 дней.
               <>
                 <p className="lead">
-                  Привяжите зарубежную карту — <strong>первая неделя бесплатно</strong>, спишем
-                  только через 7 дней. Отменить можно в любой момент.
+                  Выберите тариф — зарубежная карта ($), <strong>первая неделя бесплатно</strong>,
+                  спишем только через 7 дней. Отменить можно в любой момент.
                 </p>
-                <button type="button" className="pay-btn" onClick={startCheckout} disabled={checkoutBusy}>
-                  <span className="pay-btn-title">
-                    {checkoutBusy ? 'Открываем оплату…' : 'Привязать карту · неделя бесплатно'}
-                  </span>
-                  {!checkoutBusy && <span className="pay-btn-sub">Stripe · Visa, Mastercard</span>}
+                <Tariffs currency="usd" busy={checkoutBusy} onPick={startStripe} />
+                <button
+                  type="button"
+                  className="link-back"
+                  onClick={() => setCardType(null)}
+                  style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 8 }}
+                >
+                  ← другой способ оплаты
                 </button>
-                {lavaOn && (
-                  <button
-                    type="button"
-                    className="link-back"
-                    onClick={() => setCardType(null)}
-                    style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 8 }}
-                  >
-                    ← другой способ оплаты
-                  </button>
-                )}
               </>
             )}
             <ul className="pay-points">

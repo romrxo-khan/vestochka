@@ -307,3 +307,23 @@ footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12
 .acc-row:first-child { border-top: 0; }
 .acc-row span { color: var(--soft); }
 .acc-row b { color: #cfe0ff; text-align: right; }
+
+/* ===== Тарифы (лендинг + окно оплаты) ===== */
+.section-h { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0; }
+.section-sub { color: var(--soft); font-size: 16px; max-width: 640px; }
+.tariffs { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; margin-top: 16px; }
+.tariff {
+  background: #fff; color: var(--ink); border: 1px solid var(--line);
+  border-radius: 16px; padding: 22px; text-align: left; display: flex; flex-direction: column;
+}
+.tariff-hl { border-color: var(--blue); box-shadow: 0 8px 26px rgba(29, 111, 242, 0.16); }
+.tariff-name { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
+.tariff-price { font-size: 27px; font-weight: 800; color: var(--blue); margin: 8px 0 2px; }
+.tariff-per { font-size: 14px; font-weight: 700; color: var(--soft); }
+.tariff-alt { display: block; font-size: 13px; font-weight: 600; color: var(--soft); margin-top: 1px; }
+.tariff-tag { font-size: 13px; color: var(--soft); margin: 6px 0 12px; }
+.tariff-feats { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; }
+.tariff-feats li { font-size: 14px; color: var(--ink); padding-left: 23px; position: relative; line-height: 1.35; }
+.tariff-feats li::before { content: '✓'; position: absolute; left: 0; color: var(--blue); font-weight: 800; }
+.tariff .pay-btn { margin-top: auto; }
+@media (max-width: 560px) { .tariffs { grid-template-columns: 1fr; } }

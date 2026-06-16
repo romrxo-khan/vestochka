@@ -41,12 +41,22 @@ export default function RequisitesPage() {
               <strong>Сервис:</strong> «Весточка» — доступ к мессенджеру MAX через Telegram
             </li>
             <li>
+              <strong>Электронная почта:</strong>{' '}
+              <a href="mailto:vestochka99@outlook.com">vestochka99@outlook.com</a>
+            </li>
+            <li>
               <strong>Сайт:</strong> <Link href="/">https://vestochka.uk</Link>
             </li>
           </ul>
           <p>
-            По вопросам оплаты и услуг — пишите на адрес электронной почты, указанный при
-            регистрации; мы ответим на него же.
+            <strong>Как оказывается услуга.</strong> «Весточка» — онлайн-сервис по подписке, без
+            физической доставки. Доступ открывается в личном кабинете сразу после регистрации;
+            сообщения из MAX начинают приходить в Telegram после подключения в кабинете.
+          </p>
+          <p>
+            По вопросам оплаты, услуг и возврата пишите на{' '}
+            <a href="mailto:vestochka99@outlook.com">vestochka99@outlook.com</a>. Условия —
+            в <Link href="/offer">публичной оферте</Link>.
           </p>
         </div>
 
