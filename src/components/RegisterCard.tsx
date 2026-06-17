@@ -42,8 +42,8 @@ export default function RegisterCard() {
 
   const captchaOn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
   const stripeOn = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  const yookassaOn = Boolean(process.env.NEXT_PUBLIC_YOOKASSA_ENABLED)
-  const payOn = stripeOn || yookassaOn
+  const ruPayOn = Boolean(process.env.NEXT_PUBLIC_INTELLECTMONEY_ENABLED)
+  const payOn = stripeOn || ruPayOn
 
   // Открывает оплату выбранного тарифа у нужного провайдера и редиректит на его страницу.
   async function startCheckout(endpoint: string, plan: Plan) {
@@ -68,7 +68,7 @@ export default function RegisterCard() {
     }
   }
   const startStripe = (plan: Plan) => startCheckout('/api/stripe/checkout', plan)
-  const startYooKassa = (plan: Plan) => startCheckout('/api/payments/yookassa/checkout', plan)
+  const startRu = (plan: Plan) => startCheckout('/api/payments/intellectmoney/checkout', plan)
 
   async function sendCode(e?: React.FormEvent) {
     e?.preventDefault()
@@ -179,15 +179,15 @@ export default function RegisterCard() {
                 <Tariffs
                   currency="rub"
                   busy={checkoutBusy}
-                  onPick={yookassaOn ? startYooKassa : undefined}
+                  onPick={ruPayOn ? startRu : undefined}
                 />
-                {!yookassaOn && (
+                {!ruPayOn && (
                   <p className="lead" style={{ marginTop: 12 }}>
                     Оплата российской картой скоро будет доступна. Бесплатная неделя уже идёт —
                     можно подключать MAX прямо сейчас.
                   </p>
                 )}
-                {!yookassaOn && (
+                {!ruPayOn && (
                   <a href="/cabinet" className="pay-btn" style={{ textDecoration: 'none' }}>
                     <span className="pay-btn-title">Подключить MAX</span>
                     <span className="pay-btn-sub">оплатите позже, неделя уже идёт</span>
