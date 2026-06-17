@@ -22,9 +22,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'bad_json' }, { status: 400 })
   }
   const email = body.email?.trim().toLowerCase()
-  if (!email) return NextResponse.json({ ok: false, error: 'missing_email' }, { status: 400 })
+  if (!email) {
+    console.warn('[im/checkout] отказ: missing_email')
+    return NextResponse.json({ ok: false, error: 'missing_email' }, { status: 400 })
+  }
   // Доступ только владельцу подтверждённой почты (кука verify-code).
   if (!verifySession(req.cookies.get(REG_COOKIE)?.value, email)) {
+    console.warn(`[im/checkout] отказ: unverified (email=${email}, cookie=${req.cookies.get(REG_COOKIE)?.value ? 'есть' : 'нет'})`)
     return NextResponse.json({ ok: false, error: 'unverified' }, { status: 401 })
   }
   const plan: Plan = body.plan === 'personal' ? 'personal' : 'shared'
@@ -32,7 +36,11 @@ export async function POST(req: NextRequest) {
   if (!tariff) return NextResponse.json({ ok: false, error: 'no_plan' }, { status: 400 })
 
   const user = getDb().byEmailOrPhone(email)
-  if (!user) return NextResponse.json({ ok: false, error: 'no_user' }, { status: 400 })
+  if (!user) {
+    console.warn(`[im/checkout] отказ: no_user (email=${email})`)
+    return NextResponse.json({ ok: false, error: 'no_user' }, { status: 400 })
+  }
+  console.warn(`[im/checkout] создаю счёт: user=${user.id} plan=${plan} amount=${tariff.rub}`)
 
   const origin = process.env.SITE_URL?.replace(/\/$/, '')
   if (!origin) {
