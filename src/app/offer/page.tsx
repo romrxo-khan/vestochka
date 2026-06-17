@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 
 const EMAIL = 'vestochka99@outlook.com'
 const INN = '164490442194'
+const NAME = 'Ханбеков Роман Альбертович'
 
 export default function OfferPage() {
   return (
@@ -28,8 +29,8 @@ export default function OfferPage() {
         <span className="eyebrow">Условия услуг</span>
         <h1 className="post-title">Публичная оферта</h1>
         <p className="post-desc">
-          Настоящий документ — официальное предложение (оферта) самозанятого (ИНН {INN}, далее —
-          «Исполнитель») заключить договор оказания услуг сервиса «Весточка» (vestochka.uk) на
+          Настоящий документ — официальное предложение (оферта) самозанятого {NAME} (ИНН {INN},
+          далее — «Исполнитель») заключить договор оказания услуг сервиса «Весточка» (vestochka.uk) на
           указанных ниже условиях. Регистрация и/или оплата означают полное согласие (акцепт)
           с офертой.
         </p>
@@ -121,6 +122,9 @@ export default function OfferPage() {
 
           <h2>8. Реквизиты Исполнителя</h2>
           <ul>
+            <li>
+              <strong>Исполнитель:</strong> {NAME}
+            </li>
             <li>
               <strong>Статус:</strong> самозанятый (плательщик налога на профессиональный доход)
             </li>
