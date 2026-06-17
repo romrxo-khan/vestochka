@@ -174,23 +174,9 @@ export default function RegisterCard() {
                   <span className="pay-btn-title">🌍 Зарубежная карта</span>
                   <span className="pay-btn-sub">оплата в евро</span>
                 </button>
-                {/* Неделя бесплатна — можно зайти в кабинет и оплатить позже. */}
-                <a
-                  href="/cabinet"
-                  className="link-back"
-                  style={{
-                    display: 'block',
-                    marginTop: 14,
-                    color: '#7fb0ff',
-                    textAlign: 'center',
-                    textDecoration: 'none',
-                  }}
-                >
-                  Пока пропустить — перейти в кабинет
-                </a>
               </>
             ) : cardType === 'ru' ? (
-              // РФ: показываем тарифы в рублях. ЮKassa подключается за флагом.
+              // РФ: показываем тарифы в рублях.
               <>
                 <p className="lead">Выберите тариф — оплата российской картой (₽):</p>
                 <Tariffs
@@ -204,12 +190,20 @@ export default function RegisterCard() {
                     можно подключать MAX прямо сейчас.
                   </p>
                 )}
-                {!ruPayOn && (
-                  <a href="/cabinet" className="pay-btn" style={{ textDecoration: 'none' }}>
-                    <span className="pay-btn-title">Подключить MAX</span>
-                    <span className="pay-btn-sub">оплатите позже, неделя уже идёт</span>
-                  </a>
-                )}
+                {/* Неделя бесплатна — можно пропустить и оплатить позже из кабинета. */}
+                <a
+                  href="/cabinet"
+                  className="link-back"
+                  style={{
+                    display: 'block',
+                    marginTop: 14,
+                    color: '#7fb0ff',
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Пока пропустить — перейти в кабинет
+                </a>
                 <button
                   type="button"
                   className="link-back"
