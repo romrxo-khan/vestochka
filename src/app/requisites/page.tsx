@@ -56,7 +56,8 @@ export default function RequisitesPage() {
           <p>
             По вопросам оплаты, услуг и возврата пишите на{' '}
             <a href="mailto:vestochka99@outlook.com">vestochka99@outlook.com</a>. Условия —
-            в <Link href="/offer">публичной оферте</Link>.
+            в <Link href="/offer">публичной оферте</Link>, обработка данных — в{' '}
+            <Link href="/privacy">Политике обработки персональных данных</Link>.
           </p>
         </div>
 

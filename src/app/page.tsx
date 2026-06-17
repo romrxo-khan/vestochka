@@ -148,7 +148,7 @@ export default function Home() {
         <span>
           <Link href="/details">О сервисе</Link> · <Link href="/blog">Блог</Link> ·{' '}
           <Link href="/editorial-policy">Редполитика</Link> · <Link href="/offer">Оферта</Link> ·{' '}
-          <Link href="/requisites">Реквизиты</Link>
+          <Link href="/privacy">Политика данных</Link> · <Link href="/requisites">Реквизиты</Link>
         </span>
         <span>Не является официальным сервисом MAX.</span>
       </footer>
