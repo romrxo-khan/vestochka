@@ -7,6 +7,7 @@ import { getDb, type User } from '@/lib/control-db'
 import { REG_COOKIE, verifySession } from '@/lib/reg-session'
 import { signLinkToken } from '@/lib/link-token'
 import MaxConnect from '@/components/MaxConnect'
+import PayBox from '@/components/PayBox'
 import SupergroupGuide from '@/components/SupergroupGuide'
 import TelegramLink from '@/components/TelegramLink'
 import AccountView from '@/components/AccountView'
@@ -118,6 +119,9 @@ export default async function CabinetPage({
           )}
         </p>
       </div>
+
+      {/* Неоплаченным — блок оплаты прямо в кабинете (active не показываем). */}
+      {user && ps !== 'active' && <PayBox email={user.email ?? ''} />}
 
       {user &&
         (showCabinet ? (
