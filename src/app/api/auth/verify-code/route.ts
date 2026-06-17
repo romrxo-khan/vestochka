@@ -50,7 +50,12 @@ export async function POST(req: Request) {
     }
   }
 
-  const res = NextResponse.json({ ok: true, contact, channel, trial, referralApplied })
+  // Оплачена ли подписка — чтобы окно входа знало: возвращающегося НЕОПЛАЧЕННОГО
+  // юзера вести на оплату, а не молча в кабинет.
+  const fresh = reg.ok && reg.userId ? getDb().byId(reg.userId) : undefined
+  const paid = fresh?.payment_status === 'active'
+
+  const res = NextResponse.json({ ok: true, contact, channel, trial, referralApplied, paid })
   // Подтверждённый контакт = сессия входа (passwordless). 30 дней.
   res.cookies.set(REG_COOKIE, signSession(contact), {
     httpOnly: true,

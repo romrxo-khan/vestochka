@@ -20,6 +20,7 @@ export default function RegisterCard() {
   const [checkoutBusy, setCheckoutBusy] = useState(false)
   const [cardType, setCardType] = useState<'ru' | 'foreign' | null>(null)
   const [returning, setReturning] = useState(false) // аккаунт уже был — это вход, не регистрация
+  const [paid, setPaid] = useState(false) // подписка уже оплачена (active)
   const [refCode, setRefCode] = useState('') // реферальный код приглашения
   const [refApplied, setRefApplied] = useState(false)
   const [sessionEmail, setSessionEmail] = useState<string | null>(null) // уже вошедший пользователь
@@ -122,6 +123,7 @@ export default function RegisterCard() {
       }
       if (typeof data.trial?.daysRemaining === 'number') setTrialDays(data.trial.daysRemaining)
       if (data.trial?.isNew === false) setReturning(true) // аккаунт уже существовал → это вход
+      setPaid(Boolean(data.paid)) // оплачена ли подписка
       if (data.referralApplied) setRefApplied(true)
       setStep('done')
     } catch {
@@ -141,8 +143,8 @@ export default function RegisterCard() {
       </div>
 
       {step === 'done' ? (
-        returning ? (
-          // Аккаунт уже существовал — это вход, без «регистрация/неделя/оплата».
+        returning && paid ? (
+          // Вошёл и подписка оплачена — сразу в кабинет.
           <>
             <p className="lead">С возвращением ✅ Вы вошли в свой аккаунт.</p>
             <a href="/cabinet" className="pay-btn" style={{ textDecoration: 'none' }}>
@@ -161,7 +163,8 @@ export default function RegisterCard() {
               // Сначала простой выбор карты — без обещаний и без преимуществ способов.
               <>
                 <p className="lead">
-                  Почта подтверждена ✅ Пробный период активен. Какой картой будете платить?
+                  {returning ? 'С возвращением ✅ ' : 'Почта подтверждена ✅ '}
+                  Какой картой хотите оплатить подписку?
                 </p>
                 <button type="button" className="pay-btn" onClick={() => setCardType('ru')}>
                   <span className="pay-btn-title">🇷🇺 Российская карта</span>
@@ -171,6 +174,20 @@ export default function RegisterCard() {
                   <span className="pay-btn-title">🌍 Зарубежная карта</span>
                   <span className="pay-btn-sub">оплата в евро</span>
                 </button>
+                {/* Неделя бесплатна — можно зайти в кабинет и оплатить позже. */}
+                <a
+                  href="/cabinet"
+                  className="link-back"
+                  style={{
+                    display: 'block',
+                    marginTop: 14,
+                    color: '#7fb0ff',
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Пока пропустить — перейти в кабинет
+                </a>
               </>
             ) : cardType === 'ru' ? (
               // РФ: показываем тарифы в рублях. ЮKassa подключается за флагом.
