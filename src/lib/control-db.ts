@@ -150,6 +150,7 @@ export class ControlDb {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     this.db = new DatabaseSync(file)
     this.db.exec(SCHEMA)
+    this.db.exec(`CREATE TABLE IF NOT EXISTS app_kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)`)
     this.migrate()
   }
 
@@ -753,6 +754,45 @@ export class ControlDb {
       crashesInWindow: crashes,
       crashWindowDays,
     }
+  }
+
+  // ── Ёмкость флита ──────────────────────────────────────────────────────────
+  /** Занятые места: живые подписчики (trialing/active/past_due), не suspended/cancelled. */
+  seatsUsed(): number {
+    return (
+      this.db
+        .prepare(
+          `SELECT COUNT(*) n FROM users
+            WHERE payment_status IN ('trialing','active','past_due')
+              AND status NOT IN ('suspended','cancelled')`,
+        )
+        .get() as unknown as { n: number }
+    ).n
+  }
+
+  /** Реально запущенные агенты (подключён MAX, не снесён, не suspended). */
+  runningAgentsCount(): number {
+    return (
+      this.db
+        .prepare(
+          `SELECT COUNT(*) n FROM users
+            WHERE max_phone IS NOT NULL AND teardown_pending = 0
+              AND status NOT IN ('suspended','cancelled')`,
+        )
+        .get() as unknown as { n: number }
+    ).n
+  }
+
+  /** Простое key-value (отметки уровня алерта ёмкости и пр.). */
+  kvGet(k: string): string | undefined {
+    return (this.db.prepare(`SELECT v FROM app_kv WHERE k = ?`).get(k) as { v: string } | undefined)
+      ?.v
+  }
+
+  kvSet(k: string, v: string): void {
+    this.db
+      .prepare(`INSERT INTO app_kv (k,v) VALUES (?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`)
+      .run(k, v)
   }
 
   private update(userId: number, fields: Record<string, unknown>): void {

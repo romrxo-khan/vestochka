@@ -25,6 +25,7 @@ export default function RegisterCard() {
   const [refApplied, setRefApplied] = useState(false)
   const [sessionEmail, setSessionEmail] = useState<string | null>(null) // уже вошедший пользователь
   const [showOther, setShowOther] = useState(false) // залогинен, но хочет войти под другой почтой
+  const [capacityFull, setCapacityFull] = useState(false) // мест на сервере не осталось
 
   // Подхватываем код из ссылки-приглашения ?ref=CODE.
   useEffect(() => {
@@ -39,6 +40,14 @@ export default function RegisterCard() {
       .then((d) => {
         if (d.loggedIn) setSessionEmail(d.email ?? '')
       })
+      .catch(() => {})
+  }, [])
+
+  // Ёмкость сервера: если мест нет — показываем плашку и блокируем новые регистрации.
+  useEffect(() => {
+    fetch('/api/capacity', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => setCapacityFull(Boolean(d.full)))
       .catch(() => {})
   }, [])
 
@@ -97,7 +106,10 @@ export default function RegisterCard() {
           setError('Не удалось пройти проверку. Обновите страницу и попробуйте снова.')
         else if (data.error === 'invalid_contact') setError('Проверьте адрес почты.')
         else if (data.error === 'send_failed') setError('Не удалось отправить код. Попробуйте ещё раз.')
-        else setError('Что-то пошло не так. Попробуйте ещё раз.')
+        else if (data.error === 'at_capacity') {
+          setCapacityFull(true)
+          setError('Сейчас все места заняты — новые регистрации временно недоступны. Попробуйте позже.')
+        } else setError('Что-то пошло не так. Попробуйте ещё раз.')
         return
       }
       setStep('code')
@@ -146,6 +158,14 @@ export default function RegisterCard() {
       <div className="head">
         {step === 'done' && returning ? 'Вы вошли' : 'Вход или регистрация'}
       </div>
+
+      {capacityFull && step !== 'done' && (
+        <p className="tg-privacy" style={{ borderColor: '#e0a23a', background: 'rgba(224,162,58,.10)' }}>
+          ⏳ Сейчас все места заняты — мы временно не принимаем новых пользователей, чтобы держать
+          качество. Уже подключённые работают как обычно. Загляните чуть позже — мы расширяемся.
+          Если вы <strong>уже регистрировались</strong>, вход ниже работает.
+        </p>
+      )}
 
       {step === 'done' ? (
         returning && paid ? (

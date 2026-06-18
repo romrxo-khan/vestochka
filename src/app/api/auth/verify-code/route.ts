@@ -3,6 +3,7 @@ import { verifyCode, isValidContact, normalizeContact } from '@/lib/otp'
 import { registerUser } from '@/lib/control-plane'
 import { getDb } from '@/lib/control-db'
 import { REG_COOKIE, signSession } from '@/lib/reg-session'
+import { maybeAlertCapacity } from '@/lib/capacity'
 
 export const runtime = 'nodejs'
 
@@ -54,6 +55,9 @@ export async function POST(req: Request) {
   // юзера вести на оплату, а не молча в кабинет.
   const fresh = reg.ok && reg.userId ? getDb().byId(reg.userId) : undefined
   const paid = fresh?.payment_status === 'active'
+
+  // Новый подписчик занял место → проверим ёмкость и при пересечении порога алертим владельцу.
+  if (reg.ok && reg.isNew) await maybeAlertCapacity()
 
   const res = NextResponse.json({ ok: true, contact, channel, trial, referralApplied, paid })
   // Подтверждённый контакт = сессия входа (passwordless). 30 дней.

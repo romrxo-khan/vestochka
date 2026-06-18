@@ -5,6 +5,8 @@ import { sendPhoneCode } from '@/lib/sms'
 import { guardSendCode, clientIp } from '@/lib/ratelimit'
 import { verifyTurnstile } from '@/lib/turnstile'
 import { REG_COOKIE, signSession, verifySession } from '@/lib/reg-session'
+import { capacity } from '@/lib/capacity'
+import { getDb } from '@/lib/control-db'
 
 export const runtime = 'nodejs'
 
@@ -40,6 +42,11 @@ export async function POST(req: NextRequest) {
 
   const ip = clientIp(req)
   const isResend = verifySession(req.cookies.get(REG_COOKIE)?.value, contact)
+
+  // Стоп новым регистрациям при заполнении мест. Вход СУЩЕСТВУЮЩИХ юзеров (и повтор кода) — разрешён.
+  if (!isResend && !getDb().byEmailOrPhone(contact) && capacity().full) {
+    return NextResponse.json({ ok: false, error: 'at_capacity' }, { status: 503 })
+  }
 
   const tooMany = () => {
     const guard = guardSendCode({ ip, contact, channel })

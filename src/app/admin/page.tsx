@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { getDb } from '@/lib/control-db'
 import { ADMIN_COOKIE, verifyAdminSession } from '@/lib/admin-auth'
+import { capacity } from '@/lib/capacity'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,7 +20,13 @@ export default async function AdminPage() {
   }
 
   const m = getDb().getMetrics()
+  const cap = capacity()
   const cards: Array<[string, string | number, string?]> = [
+    [
+      'Места (занято / всего)',
+      `${cap.used} / ${cap.total}`,
+      `${cap.running} агентов запущено · свободно ${cap.free}${cap.full ? ' · ⛔ ПОЛНО' : cap.pct >= 80 ? ' · ⚠️ почти полно' : ''}`,
+    ],
     ['Зарегистрировались', m.registered],
     ['Начали триал', m.trialsStarted, 'ввели карту/почту'],
     ['Платят сейчас', m.currentlyPaying],

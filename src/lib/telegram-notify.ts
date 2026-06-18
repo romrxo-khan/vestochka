@@ -29,3 +29,13 @@ export async function notifyTelegram(tgUserId: number, text: string): Promise<bo
     return false
   }
 }
+
+/** Шлёт текст ВЛАДЕЛЬЦУ (по TELEGRAM_OWNER_ID — тот же id, что у бота моста). Best-effort. */
+export async function notifyOwner(text: string): Promise<boolean> {
+  const ownerId = Number(process.env.TELEGRAM_OWNER_ID ?? '0')
+  if (!ownerId) {
+    console.log('[tg:owner] TELEGRAM_OWNER_ID не задан, пропускаю:', text)
+    return false
+  }
+  return notifyTelegram(ownerId, text)
+}
