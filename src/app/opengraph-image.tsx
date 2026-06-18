@@ -41,9 +41,10 @@ export default async function Image() {
           }}
         >
           <span>Близкие пишут в MAX.</span>
-          <span>
-            Вы отвечаете <span style={{ color: '#1d6ff2' }}>из Telegram</span>
-          </span>
+          <div style={{ display: 'flex' }}>
+            <span>Вы отвечаете&nbsp;</span>
+            <span style={{ color: '#1d6ff2' }}>из Telegram</span>
+          </div>
         </div>
         <div style={{ display: 'flex', fontSize: 26, fontWeight: 500, color: '#5c6b7e' }}>
           Пользуйтесь MAX, не устанавливая его на телефон · vestochka.uk
