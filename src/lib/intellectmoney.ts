@@ -110,18 +110,18 @@ export interface ResultFields {
 }
 
 /**
- * Подпись уведомления Result URL:
- * EshopId::InvoiceId::OrderId::EshopAccount::ServiceName::RecipientAmount::
- * RecipientCurrency::PaymentStatus::UserName::UserEmail::PaymentData::SecretKey
+ * Подпись уведомления Result URL (офиц. формула IntellectMoney, БЕЗ invoiceId/paymentId):
+ * EshopId::OrderId::ServiceName::EshopAccount::RecipientAmount::RecipientCurrency::
+ * PaymentStatus::UserName::UserEmail::PaymentData::SecretKey
+ * Пример: 17354::order_1::Книга::4356091274::12.30::RUB::5::Имя::a@b.ru::2010-01-17 13:12:03::key
  */
 export function verifyResult(f: ResultFields): boolean {
   const expected = md5(
     [
       f.eshopId,
-      f.invoiceId,
       f.orderId,
-      f.eshopAccount,
       f.serviceName,
+      f.eshopAccount,
       f.recipientAmount,
       f.recipientCurrency,
       f.paymentStatus,
@@ -136,8 +136,12 @@ export function verifyResult(f: ResultFields): boolean {
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(got))
 }
 
-/** Успешная оплата по протоколу IntellectMoney. */
+/**
+ * Успешная оплата по протоколу IntellectMoney.
+ * paymentStatus: 3=счёт создан, 4=отменён, 5=оплачен (деньги магазину), 7=частично, 8=оплачен+возврат.
+ * Активируем только при полной оплате (5).
+ */
 export function isPaid(paymentStatus: string): boolean {
   const s = (paymentStatus ?? '').trim().toLowerCase()
-  return s === 'paid' || s === '5' || s === '2'
+  return s === 'paid' || s === '5'
 }

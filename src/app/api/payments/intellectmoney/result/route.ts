@@ -47,11 +47,22 @@ export async function POST(req: Request) {
   }
 
   if (!verifyResult(f)) {
-    // Диагностика формулы подписи (это метаданные платежа, без приватного контента).
+    // Временная диагностика формулы подписи (метаданные платежа, без приватного контента).
     console.error(
       '[im/result] подпись не прошла. keys=' +
         Object.keys(low).join(',') +
-        ` orderId=${f.orderId} status=${f.paymentStatus}`,
+        ` fields=${JSON.stringify({
+          eshopId: f.eshopId,
+          orderId: f.orderId,
+          serviceName: f.serviceName,
+          eshopAccount: f.eshopAccount,
+          recipientAmount: f.recipientAmount,
+          recipientCurrency: f.recipientCurrency,
+          paymentStatus: f.paymentStatus,
+          userName: f.userName,
+          userEmail: f.userEmail,
+          paymentData: f.paymentData,
+        })} gotHash=${f.hash}`,
     )
     return new NextResponse('bad sign', { status: 403 })
   }
