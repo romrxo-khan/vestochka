@@ -19,7 +19,7 @@ export const TARIFFS: Tariff[] = [
     id: 'shared',
     name: 'Базовый',
     rub: 299,
-    eur: 4.99, // TODO: → 3.99 после создания нового Stripe Price (€3.99) и обновления STRIPE_PRICE_SHARED
+    eur: 3.99,
     tagline: 'Всё, чтобы читать MAX в Telegram',
     features: [
       'Сообщения из MAX приходят в ваш Telegram',
@@ -34,7 +34,7 @@ export const TARIFFS: Tariff[] = [
     id: 'personal',
     name: 'Персональный',
     rub: 859,
-    eur: 11.99, // TODO: → 10.99 после создания нового Stripe Price (€10.99) и обновления STRIPE_PRICE_PERSONAL
+    eur: 10.99,
     tagline: 'Всё из «Базового» + выделенный профиль',
     features: [
       'Отдельный выделенный профиль — выше приватность',

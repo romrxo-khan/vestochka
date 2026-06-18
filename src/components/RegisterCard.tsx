@@ -24,6 +24,7 @@ export default function RegisterCard() {
   const [refCode, setRefCode] = useState('') // реферальный код приглашения
   const [refApplied, setRefApplied] = useState(false)
   const [sessionEmail, setSessionEmail] = useState<string | null>(null) // уже вошедший пользователь
+  const [showOther, setShowOther] = useState(false) // залогинен, но хочет войти под другой почтой
 
   // Подхватываем код из ссылки-приглашения ?ref=CODE.
   useEffect(() => {
@@ -255,24 +256,51 @@ export default function RegisterCard() {
         )
       ) : (
         <>
-          {sessionEmail !== null && step === 'contact' && (
-            <div style={{ marginBottom: 16 }}>
+          {sessionEmail !== null && step === 'contact' && !showOther ? (
+            <div>
               <p className="lead">
                 Вы уже вошли{sessionEmail ? ` как ${sessionEmail}` : ''}.
               </p>
               <a href="/cabinet" className="pay-btn" style={{ textDecoration: 'none' }}>
                 <span className="pay-btn-title">Перейти в кабинет</span>
               </a>
-              <p className="fine">Или войдите под другой почтой ниже.</p>
+              <p className="fine">
+                Не вы?{' '}
+                <a
+                  href="#"
+                  style={{ color: '#7fb0ff' }}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setShowOther(true)
+                  }}
+                >
+                  Войти под другой почтой
+                </a>
+              </p>
             </div>
-          )}
-          <p className="lead">
-            Введите почту — пришлём код. Есть аккаунт — войдёте, нет — заведём.{' '}
-            <strong>Первая неделя бесплатно.</strong>
-          </p>
+          ) : (
+            <>
+              {sessionEmail !== null && step === 'contact' && (
+                <p className="fine" style={{ marginTop: 0 }}>
+                  <a
+                    href="#"
+                    style={{ color: '#7fb0ff' }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setShowOther(false)
+                    }}
+                  >
+                    ← Вернуться
+                  </a>
+                </p>
+              )}
+              <p className="lead">
+                Введите почту — пришлём код. Есть аккаунт — войдёте, нет — заведём.{' '}
+                <strong>Первая неделя бесплатно.</strong>
+              </p>
 
-          {step === 'contact' ? (
-            <form onSubmit={sendCode}>
+              {step === 'contact' ? (
+                <form onSubmit={sendCode}>
               <input
                 type="email"
                 name="email"
@@ -341,6 +369,8 @@ export default function RegisterCard() {
               </p>
             </form>
           )}
+            </>
+          )}
         </>
       )}
 
@@ -350,12 +380,9 @@ export default function RegisterCard() {
         </p>
       )}
 
-      {step === 'contact' && (
+      {step === 'contact' && (sessionEmail === null || showOther) && (
         <p className="fine">
-          Нажимая кнопку, вы соглашаетесь с обработкой персональных данных. Уже есть аккаунт?{' '}
-          <a href="#" style={{ color: '#7fb0ff' }}>
-            Войти
-          </a>
+          Нажимая кнопку, вы соглашаетесь с обработкой персональных данных.
         </p>
       )}
     </div>
