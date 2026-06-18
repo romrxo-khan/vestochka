@@ -3,6 +3,30 @@ import RegisterCard from '@/components/RegisterCard'
 import Tariffs from '@/components/Tariffs'
 import HeroMock from '@/components/HeroMock'
 
+// Частые вопросы — заодно FAQPage-разметка для поиска (ловит вопросные запросы).
+const FAQS: Array<{ q: string; a: string }> = [
+  {
+    q: 'Как читать сообщения из MAX в Telegram?',
+    a: 'Подключите аккаунт MAX в кабинете «Весточки» — входящие из MAX будут приходить в ваш Telegram отдельными темами, а отвечать можно прямо из Telegram. Устанавливать MAX на телефон не нужно.',
+  },
+  {
+    q: 'Как вернуть уведомления MAX на iPhone?',
+    a: 'Если уведомления MAX на iPhone не приходят, подключите MAX к Telegram через «Весточку»: сообщения из MAX будут приходить как обычные уведомления Telegram, а они на iPhone работают штатно.',
+  },
+  {
+    q: 'Нужно ли устанавливать приложение MAX?',
+    a: 'Нет. «Весточка» работает на стороне сервиса — вам достаточно Telegram. MAX на телефон ставить не нужно.',
+  },
+  {
+    q: 'Можно ли отвечать в MAX из Telegram?',
+    a: 'Да. Ответ, написанный в Telegram, уходит собеседнику обратно в MAX — текст, фото, голосовые, видео-кружки и файлы.',
+  },
+  {
+    q: 'Сколько стоит «Весточка»?',
+    a: 'Первая неделя — бесплатно. Дальше Базовый 399 ₽/мес или Персональный 999 ₽/мес (для зарубежных карт — €4.99 и €11.99).',
+  },
+]
+
 export default function Home() {
   return (
     <div className="wrap">
@@ -134,6 +158,33 @@ export default function Home() {
           свой Telegram — и сообщения из MAX начинают приходить в Telegram. Услуга оказывается
           непрерывно, пока активна подписка.
         </p>
+      </section>
+
+      <section style={{ paddingTop: 56 }} id="faq">
+        <span className="eyebrow">Частые вопросы</span>
+        <h2 className="section-h">Коротко о главном</h2>
+        <div className="limits">
+          {FAQS.map((f) => (
+            <div className="limit" key={f.q}>
+              <h3>{f.q}</h3>
+              <p>{f.a}</p>
+            </div>
+          ))}
+        </div>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: FAQS.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
+              })),
+            }).replace(/</g, '\\u003c'),
+          }}
+        />
       </section>
 
       <section style={{ paddingTop: 44 }}>

@@ -17,6 +17,20 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://vestochka.uk'),
   title: 'Весточка — MAX в вашем Telegram',
   description: DESCRIPTION,
+  applicationName: 'Весточка',
+  keywords: [
+    'Весточка',
+    'vestochka',
+    'MAX в Telegram',
+    'MAX мессенджер',
+    'как читать MAX',
+    'MAX без установки',
+    'пересылка сообщений из MAX в Telegram',
+    'мост MAX Telegram',
+    'как вернуть уведомления MAX на iPhone',
+    'уведомления MAX на айфоне',
+    'MAX на компьютере',
+  ],
   alternates: { canonical: '/' },
   openGraph: {
     title: 'Весточка — MAX в вашем Telegram',
@@ -38,9 +52,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'Весточка',
+    alternateName: ['Vestochka', 'vestochka'],
     url: 'https://vestochka.uk',
     description: DESCRIPTION,
     logo: 'https://vestochka.uk/logo.png',
+    email: 'vestochka99@outlook.com',
+  }
+  const siteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Весточка',
+    alternateName: ['Vestochka', 'vestochka', 'Весточка — MAX в Telegram'],
+    url: 'https://vestochka.uk',
+    inLanguage: 'ru-RU',
   }
 
   return (
@@ -50,6 +74,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema).replace(/</g, '\\u003c') }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteSchema).replace(/</g, '\\u003c') }}
         />
         {children}
         <Analytics />
