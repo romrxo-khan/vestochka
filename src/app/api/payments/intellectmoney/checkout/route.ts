@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
     console.warn(`[im/checkout] отказ: no_user (email=${safeEmail})`)
     return NextResponse.json({ ok: false, error: 'no_user' }, { status: 400 })
   }
+  // Защита от двойной подписки: у активного уже есть оплата — второй раз не оформляем.
+  if (user.payment_status === 'active') {
+    return NextResponse.json({ ok: false, error: 'already_active' }, { status: 409 })
+  }
   console.warn(`[im/checkout] создаю счёт: user=${user.id} plan=${plan} amount=${tariff.rub}`)
 
   const origin = process.env.SITE_URL?.replace(/\/$/, '')

@@ -148,8 +148,10 @@ export default function Home() {
         <span className="eyebrow">Тарифы</span>
         <h2 className="section-h">Простая помесячная подписка</h2>
         <p className="section-sub">
-          <strong>Первая неделя — бесплатно.</strong> Подписку можно отменить в любой момент.
-          Оплата российской (₽) или зарубежной картой (€).
+          <strong style={{ color: '#0c1b34', fontSize: '1.12em' }}>
+            Первая неделя — бесплатно.
+          </strong>{' '}
+          Подписку можно отменить в любой момент. Оплата российской (₽) или зарубежной картой (€).
         </p>
         <Tariffs currency="both" />
         <p className="section-sub" style={{ marginTop: 18 }}>

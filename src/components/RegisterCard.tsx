@@ -58,6 +58,10 @@ export default function RegisterCard() {
         body: JSON.stringify({ email: contact, plan }),
       })
       const data = await res.json()
+      if (data.error === 'already_active') {
+        setError('У вас уже есть активная подписка.')
+        return
+      }
       if (!res.ok || !data.ok || !data.url) {
         setError('Не удалось открыть оплату. Попробуйте ещё раз.')
         return

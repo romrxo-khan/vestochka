@@ -33,6 +33,11 @@ export async function POST(req: NextRequest) {
   // Пользователь уже создан на verify-code; берём его id для связи с подпиской.
   const user = getDb().byEmailOrPhone(email)
 
+  // Защита от двойной подписки: у активного уже есть оплата — второй раз не оформляем.
+  if (user?.payment_status === 'active') {
+    return NextResponse.json({ ok: false, error: 'already_active' }, { status: 409 })
+  }
+
   // ПУБЛИЧНЫЙ origin строго из SITE_URL (не из заголовков — иначе host-injection/open-redirect
   // в success_url). За Cloudflare/Traefik req.url = внутренний localhost, поэтому fail-closed.
   const origin = process.env.SITE_URL?.replace(/\/$/, '')
