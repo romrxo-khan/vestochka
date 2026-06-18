@@ -60,11 +60,11 @@ export default function AccountView(p: Props) {
         <div className="head">Ваши данные</div>
         <div className="acc-rows">
           <div className="acc-row"><span>Почта</span><b>{p.email}</b></div>
-          <div className="acc-row"><span>Тариф</span><b>{p.planLabel}</b></div>
-          <div className="acc-row"><span>Подписка</span><b>{p.statusLabel} · {p.daysRemaining} дн.</b></div>
           <div className="acc-row"><span>Номер MAX</span><b>{p.maxPhone ?? '—'}</b></div>
           <div className="acc-row"><span>Telegram</span><b>{p.tgLinked ? 'подключён ✅' : 'не подключён'}</b></div>
           <div className="acc-row"><span>Группа</span><b>{p.groupOk ? `${p.groupTitle ?? 'подключена'} ✅` : 'не подключена'}</b></div>
+          <div className="acc-row"><span>Тариф</span><b>{p.planLabel}</b></div>
+          <div className="acc-row"><span>Подписка</span><b>{p.statusLabel} · {p.daysRemaining} дн.</b></div>
         </div>
       </section>
 

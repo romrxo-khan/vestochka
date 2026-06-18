@@ -299,6 +299,10 @@ footer { padding: 38px 0 56px; border-top: 1px solid var(--line); margin-top: 12
   padding: 9px 12px; font-size: 13px; color: #cfe0ff; }
 .tg-cmd button { flex: 0 0 auto; background: var(--blue); color: #fff; border: 0; border-radius: 8px;
   padding: 9px 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.tg-privacy { margin: 14px 0 4px; padding: 12px 14px; font-size: 14px; line-height: 1.5;
+  color: #c2d2ea; background: rgba(127,176,255,.08); border: 1px solid var(--line);
+  border-radius: 12px; max-width: 560px; }
+.tg-privacy strong { color: #eaf2ff; }
 
 /* Личный кабинет — таблица данных */
 .acc-rows { margin: 14px 0 16px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }

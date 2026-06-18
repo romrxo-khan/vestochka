@@ -67,6 +67,11 @@ export default function TelegramLink({
   return (
     <>
       <p className="lead">Откройте нашего бота — туда будут приходить сообщения из MAX и напоминания.</p>
+      <p className="tg-privacy">
+        🔒 Мы <strong>не читаем</strong> вашу переписку в Telegram. Сервис работает только через
+        нашего бота: сообщения из MAX приходят в чат с ботом, и там же вы отвечаете. Доступа к
+        вашим личным чатам в Telegram у нас нет.
+      </p>
       <a
         className="pay-btn"
         href={linkUrl}
