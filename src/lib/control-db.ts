@@ -70,6 +70,21 @@ export interface Metrics {
   crashWindowDays: number
 }
 
+/** Строка мини-CRM в дашборде: воронка по каждому пользователю. */
+export interface CrmRow {
+  id: number
+  email: string | null
+  createdAt: string
+  paymentStatus: string
+  daysRemaining: number
+  tgLinked: boolean
+  maxLinked: boolean
+  groupOk: boolean
+  setupDone: boolean
+  everPaid: boolean
+  stage: string
+}
+
 /** Зеркало состояний движка входа (src/max/onboard.ts на стороне контейнера). */
 export type OnboardState =
   | 'IDLE'
@@ -781,6 +796,55 @@ export class ControlDb {
         )
         .get() as unknown as { n: number }
     ).n
+  }
+
+  /** Мини-CRM: по каждому юзеру — этап воронки и ключевые флаги (для дашборда). */
+  crmRows(): CrmRow[] {
+    const users = this.db
+      .prepare(`SELECT * FROM users ORDER BY created_at DESC`)
+      .all() as unknown as User[]
+    const paid = new Set(
+      (
+        this.db
+          .prepare(`SELECT DISTINCT user_id FROM events WHERE type='first_paid'`)
+          .all() as unknown as Array<{ user_id: number }>
+      ).map((r) => r.user_id),
+    )
+    return users.map((u) => {
+      const tgLinked = Boolean(u.tg_user_id)
+      const maxLinked = Boolean(u.max_phone)
+      const groupOk = u.group_ok === 1
+      const setupDone = u.setup_done === 1
+      const stage =
+        u.payment_status === 'active'
+          ? 'Оплатил'
+          : u.status === 'suspended'
+            ? 'Приостановлен'
+            : u.payment_status === 'past_due'
+              ? 'Нужна оплата'
+              : setupDone
+                ? 'Настроен'
+                : groupOk
+                  ? 'Группа'
+                  : maxLinked
+                    ? 'MAX'
+                    : tgLinked
+                      ? 'Telegram'
+                      : 'Регистрация'
+      return {
+        id: u.id,
+        email: u.email,
+        createdAt: u.created_at,
+        paymentStatus: u.payment_status,
+        daysRemaining: this.daysRemaining(u),
+        tgLinked,
+        maxLinked,
+        groupOk,
+        setupDone,
+        everPaid: paid.has(u.id),
+        stage,
+      }
+    })
   }
 
   /** Простое key-value (отметки уровня алерта ёмкости и пр.). */

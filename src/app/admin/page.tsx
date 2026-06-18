@@ -21,6 +21,7 @@ export default async function AdminPage() {
 
   const m = getDb().getMetrics()
   const cap = capacity()
+  const crm = getDb().crmRows()
   const cards: Array<[string, string | number, string?]> = [
     [
       'Места (занято / всего)',
@@ -48,6 +49,58 @@ export default async function AdminPage() {
             {hint && <div style={{ fontSize: 11, color: '#8a98ad', marginTop: 2 }}>{hint}</div>}
           </div>
         ))}
+      </div>
+
+      <h2 style={{ fontSize: 16, margin: '32px 0 4px' }}>Пользователи — воронка ({crm.length})</h2>
+      <p style={{ color: '#5b6b82', margin: '0 0 14px', fontSize: 12 }}>
+        Этап = где сейчас юзер: Регистрация → Telegram → MAX → Группа → Настроен → Оплатил.
+      </p>
+      <div style={{ overflowX: 'auto', background: '#fff', border: '1px solid #e6ebf2', borderRadius: 14 }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13, minWidth: 760 }}>
+          <thead>
+            <tr style={{ textAlign: 'left', color: '#5b6b82', background: '#f1f4f9' }}>
+              {['Почта', 'Этап', 'Статус', 'Триал', 'TG', 'MAX', 'Группа', 'Настроен', 'Оплачивал', 'Создан'].map(
+                (h) => (
+                  <th key={h} style={{ padding: '10px 12px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {h}
+                  </th>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {crm.map((r) => {
+              const yn = (b: boolean) => (b ? <span style={{ color: '#13a05a' }}>✅</span> : <span style={{ color: '#c2ccda' }}>—</span>)
+              const stageColor =
+                r.stage === 'Оплатил' ? '#13a05a'
+                  : r.stage === 'Приостановлен' || r.stage === 'Нужна оплата' ? '#d6453b'
+                    : r.stage === 'Регистрация' ? '#8a98ad' : '#1763ff'
+              const statusRu: Record<string, string> = {
+                active: 'Активна', trialing: 'Триал', past_due: 'Просрочена', cancelled: 'Отменена', none: '—',
+              }
+              return (
+                <tr key={r.id} style={{ borderTop: '1px solid #eef1f6' }}>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{r.email ?? '—'}</td>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: stageColor, fontWeight: 700 }}>{r.stage}</span>
+                  </td>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{statusRu[r.paymentStatus] ?? r.paymentStatus}</td>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
+                    {r.paymentStatus === 'trialing' ? `${r.daysRemaining} дн.` : '—'}
+                  </td>
+                  <td style={{ padding: '9px 12px', textAlign: 'center' }}>{yn(r.tgLinked)}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'center' }}>{yn(r.maxLinked)}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'center' }}>{yn(r.groupOk)}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'center' }}>{yn(r.setupDone)}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'center' }}>{yn(r.everPaid)}</td>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap', color: '#8a98ad' }}>
+                    {r.createdAt.slice(0, 10)}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </main>
   )
