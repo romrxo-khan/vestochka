@@ -120,9 +120,6 @@ export default async function CabinetPage({
         </p>
       </div>
 
-      {/* Неоплаченным — блок оплаты прямо в кабинете (active не показываем). */}
-      {user && ps !== 'active' && <PayBox email={user.email ?? ''} />}
-
       {user &&
         (showCabinet ? (
           <AccountView
@@ -182,6 +179,13 @@ export default async function CabinetPage({
             )}
           </>
         ))}
+
+      {/* Оплата — НИЖЕ подключений (active не показываем). */}
+      {user && ps !== 'active' && (
+        <div style={{ marginTop: 16 }}>
+          <PayBox email={user.email ?? ''} />
+        </div>
+      )}
 
       <footer>
         <span>
