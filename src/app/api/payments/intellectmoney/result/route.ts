@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/control-db'
-import { verifyResult, isPaid, type ResultFields } from '@/lib/intellectmoney'
+import { verifyResult, isPaid, parseCp1251Form, type ResultFields } from '@/lib/intellectmoney'
 import { notifyReactivated } from '@/lib/notify'
 
 export const runtime = 'nodejs'
@@ -18,6 +18,9 @@ export async function POST(req: Request) {
     const ct = req.headers.get('content-type') ?? ''
     if (ct.includes('application/json')) {
       raw = (await req.json()) as Record<string, string>
+    } else if (ct.includes('application/x-www-form-urlencoded') || ct === '') {
+      // IM шлёт форму в Windows-1251 — парсим тело побайтно как CP1251 (иначе serviceName бьётся).
+      raw = parseCp1251Form(Buffer.from(await req.arrayBuffer()))
     } else {
       const fd = await req.formData()
       for (const [k, v] of fd.entries()) raw[k] = String(v)

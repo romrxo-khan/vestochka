@@ -17,6 +17,50 @@ export function imConfigured(): boolean {
 
 const md5 = (s: string): string => crypto.createHash('md5').update(s, 'utf8').digest('hex')
 
+// Result-протокол IntellectMoney (legacy форма оповещения) работает в Windows-1251:
+// и serviceName в теле, и контрольная подпись считаются по CP1251-байтам, не UTF-8.
+// (createInvoice — современный API, там UTF-8; его НЕ трогаем.)
+const _dec1251 = new TextDecoder('windows-1251')
+const _enc1251 = new Map<string, number>()
+for (let b = 0; b < 256; b++) _enc1251.set(_dec1251.decode(Uint8Array.of(b)), b)
+function toCp1251(str: string): Buffer {
+  const out = Buffer.alloc(str.length)
+  for (let i = 0; i < str.length; i++) {
+    const b = _enc1251.get(str[i])
+    out[i] = b === undefined ? 0x3f : b // '?' для не-CP1251 символов
+  }
+  return out
+}
+const md5cp1251 = (s: string): string => crypto.createHash('md5').update(toCp1251(s)).digest('hex')
+
+/** Percent-decode значения формы в Windows-1251 (одно поле). */
+function _decodePercentCp1251(v: string): string {
+  const bytes: number[] = []
+  for (let i = 0; i < v.length; i++) {
+    if (v[i] === '%' && /^[0-9A-Fa-f]{2}$/.test(v.slice(i + 1, i + 3))) {
+      bytes.push(parseInt(v.slice(i + 1, i + 3), 16))
+      i += 2
+    } else {
+      bytes.push(v.charCodeAt(i) & 0xff)
+    }
+  }
+  return _dec1251.decode(Uint8Array.from(bytes))
+}
+
+/** Парсит application/x-www-form-urlencoded тело как Windows-1251 (result-уведомление IM). */
+export function parseCp1251Form(buf: Buffer): Record<string, string> {
+  const out: Record<string, string> = {}
+  const text = buf.toString('latin1') // тело урла — ASCII (%XX + латиница), читаем побайтно
+  for (const pair of text.split('&')) {
+    if (!pair) continue
+    const eq = pair.indexOf('=')
+    const kRaw = (eq === -1 ? pair : pair.slice(0, eq)).replace(/\+/g, ' ')
+    const vRaw = (eq === -1 ? '' : pair.slice(eq + 1)).replace(/\+/g, ' ')
+    out[_decodePercentCp1251(kRaw)] = _decodePercentCp1251(vRaw)
+  }
+  return out
+}
+
 export interface InvoiceParams {
   orderId: string
   amount: string // "399.00"
@@ -116,7 +160,8 @@ export interface ResultFields {
  * Пример: 17354::order_1::Книга::4356091274::12.30::RUB::5::Имя::a@b.ru::2010-01-17 13:12:03::key
  */
 export function verifyResult(f: ResultFields): boolean {
-  const expected = md5(
+  // Result-протокол IM считает подпись по CP1251-байтам (serviceName кириллицей).
+  const expected = md5cp1251(
     [
       f.eshopId,
       f.orderId,
