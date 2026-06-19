@@ -815,6 +815,7 @@ export class ControlDb {
       const maxLinked = Boolean(u.max_phone)
       const groupOk = u.group_ok === 1
       const setupDone = u.setup_done === 1
+      // group_ok=1 ⇒ TG+MAX+группа все на месте ⇒ юзер реально подключён (даже если не нажал «Готово»).
       const stage =
         u.payment_status === 'active'
           ? 'Оплатил'
@@ -822,15 +823,13 @@ export class ControlDb {
             ? 'Приостановлен'
             : u.payment_status === 'past_due'
               ? 'Нужна оплата'
-              : setupDone
-                ? 'Настроен'
-                : groupOk
-                  ? 'Группа'
-                  : maxLinked
-                    ? 'MAX'
-                    : tgLinked
-                      ? 'Telegram'
-                      : 'Регистрация'
+              : groupOk
+                ? 'Подключён'
+                : maxLinked
+                  ? 'MAX'
+                  : tgLinked
+                    ? 'Telegram'
+                    : 'Регистрация'
       return {
         id: u.id,
         email: u.email,
