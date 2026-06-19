@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ok = () => {
+    console.log(`[send-code] код выдан: ${contact.replace(/[\r\n\x00-\x1f\x7f]/g, '?')} (${channel})`)
     const res = NextResponse.json({ ok: true, contact })
     // Обновляем/ставим reg-сессию (привязка повторов к этому браузеру).
     res.cookies.set(REG_COOKIE, signSession(contact), {

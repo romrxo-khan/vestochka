@@ -1,33 +1,20 @@
 /**
  * Одноразовые коды (OTP) для регистрации/входа по email или телефону.
  *
- * Хранилище — in-memory с TTL, закэшировано на globalThis (переживает hot-reload в dev
- * и живёт в одном процессе `next start`). Храним только ХЭШ кода (не сам код). Лимит попыток
- * и кулдауны (отдельно на свежую выдачу и на повтор) — защита от подбора и скрутки.
+ * Хранилище — В БД (`otp_codes`), переживает редеплой контейнера. Раньше был in-memory Map,
+ * из-за чего любая пересборка/рестарт стирала висящие коды → юзер в процессе регистрации
+ * получал «код истёк/неверный» и не мог войти. Храним только ХЭШ кода (не сам код). Лимит
+ * попыток и кулдауны (на свежую выдачу и на повтор) — защита от подбора и скрутки.
  *
- * «Повтор» (кнопка SMS / «отправить заново») ВСЕГДА выдаёт НОВЫЙ код — поэтому plaintext
- * хранить не нужно, а старый код инвалидируется.
- *
- * Для нескольких инстансов сайта позже заменим Map на общий стор (Redis/таблицу) — интерфейс
- * (issueCode/verifyCode) останется тем же.
+ * «Повтор» (кнопка SMS / «отправить заново») ВСЕГДА выдаёт НОВЫЙ код — старый инвалидируется.
  */
 import crypto from 'node:crypto'
+import { getDb } from './control-db'
 
 const TTL_MS = 10 * 60_000 // код живёт 10 минут
 const COOLDOWN_MS = 60_000 // не чаще одной отправки в минуту (каждая SMS — деньги)
 const MAX_ATTEMPTS = 5
 const SECRET = process.env.OTP_SECRET ?? 'dev-otp-secret-change-me'
-
-interface Entry {
-  hash: string
-  expiresAt: number
-  attempts: number
-  lastSentAt: number
-}
-
-const store: Map<string, Entry> =
-  (globalThis as unknown as { __otpStore?: Map<string, Entry> }).__otpStore ??
-  ((globalThis as unknown as { __otpStore?: Map<string, Entry> }).__otpStore = new Map())
 
 function hashCode(contact: string, code: string): string {
   return crypto.createHmac('sha256', SECRET).update(`${contact}:${code}`).digest('hex')
@@ -56,7 +43,7 @@ export function isValidContact(channel: 'email' | 'phone', value: string): boole
 
 /** Сколько секунд осталось до возможности отправки (0 — можно). */
 export function cooldownLeft(contact: string): number {
-  const e = store.get(contact)
+  const e = getDb().otpGet(contact)
   if (!e) return 0
   const left = COOLDOWN_MS - (Date.now() - e.lastSentAt)
   return left > 0 ? Math.ceil(left / 1000) : 0
@@ -66,7 +53,7 @@ export function cooldownLeft(contact: string): number {
 export function issueCode(contact: string): string {
   const now = Date.now()
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
-  store.set(contact, {
+  getDb().otpSet(contact, {
     hash: hashCode(contact, code),
     expiresAt: now + TTL_MS,
     attempts: 0,
@@ -78,17 +65,18 @@ export function issueCode(contact: string): string {
 export type VerifyResult = { ok: true } | { ok: false; reason: 'expired' | 'mismatch' | 'too_many' }
 
 export function verifyCode(contact: string, code: string): VerifyResult {
-  const e = store.get(contact)
+  const db = getDb()
+  const e = db.otpGet(contact)
   if (!e || Date.now() > e.expiresAt) {
-    store.delete(contact)
+    db.otpDelete(contact)
     return { ok: false, reason: 'expired' }
   }
   if (e.attempts >= MAX_ATTEMPTS) {
-    store.delete(contact)
+    db.otpDelete(contact)
     return { ok: false, reason: 'too_many' }
   }
-  e.attempts++
+  db.otpBumpAttempt(contact)
   if (hashCode(contact, code) !== e.hash) return { ok: false, reason: 'mismatch' }
-  store.delete(contact) // одноразовый
+  db.otpDelete(contact) // одноразовый
   return { ok: true }
 }

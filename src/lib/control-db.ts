@@ -85,6 +85,14 @@ export interface CrmRow {
   stage: string
 }
 
+/** Запись OTP-кода (персистентно в БД). */
+export interface OtpEntry {
+  hash: string
+  expiresAt: number
+  attempts: number
+  lastSentAt: number
+}
+
 /** Зеркало состояний движка входа (src/max/onboard.ts на стороне контейнера). */
 export type OnboardState =
   | 'IDLE'
@@ -166,6 +174,11 @@ export class ControlDb {
     this.db = new DatabaseSync(file)
     this.db.exec(SCHEMA)
     this.db.exec(`CREATE TABLE IF NOT EXISTS app_kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)`)
+    this.db.exec(
+      `CREATE TABLE IF NOT EXISTS otp_codes (
+        contact TEXT PRIMARY KEY, hash TEXT NOT NULL, expires_at INTEGER NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0, last_sent_at INTEGER NOT NULL)`,
+    )
     this.migrate()
   }
 
@@ -856,6 +869,37 @@ export class ControlDb {
     this.db
       .prepare(`INSERT INTO app_kv (k,v) VALUES (?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`)
       .run(k, v)
+  }
+
+  // ── OTP-коды: персистентно в БД (переживают редеплой; раньше были in-memory Map) ──
+  otpGet(contact: string): OtpEntry | undefined {
+    const r = this.db
+      .prepare(`SELECT hash, expires_at, attempts, last_sent_at FROM otp_codes WHERE contact = ?`)
+      .get(contact) as
+      | { hash: string; expires_at: number; attempts: number; last_sent_at: number }
+      | undefined
+    return r
+      ? { hash: r.hash, expiresAt: r.expires_at, attempts: r.attempts, lastSentAt: r.last_sent_at }
+      : undefined
+  }
+
+  otpSet(contact: string, e: OtpEntry): void {
+    this.db.prepare(`DELETE FROM otp_codes WHERE expires_at < ?`).run(Date.now()) // подчистка протухших
+    this.db
+      .prepare(
+        `INSERT INTO otp_codes (contact,hash,expires_at,attempts,last_sent_at) VALUES (?,?,?,?,?)
+          ON CONFLICT(contact) DO UPDATE SET hash=excluded.hash, expires_at=excluded.expires_at,
+            attempts=excluded.attempts, last_sent_at=excluded.last_sent_at`,
+      )
+      .run(contact, e.hash, e.expiresAt, e.attempts, e.lastSentAt)
+  }
+
+  otpBumpAttempt(contact: string): void {
+    this.db.prepare(`UPDATE otp_codes SET attempts = attempts + 1 WHERE contact = ?`).run(contact)
+  }
+
+  otpDelete(contact: string): void {
+    this.db.prepare(`DELETE FROM otp_codes WHERE contact = ?`).run(contact)
   }
 
   private update(userId: number, fields: Record<string, unknown>): void {

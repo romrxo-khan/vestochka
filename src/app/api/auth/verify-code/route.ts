@@ -26,10 +26,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'invalid_contact' }, { status: 400 })
   }
 
+  const safe = contact.replace(/[\r\n\x00-\x1f\x7f]/g, '?')
   const result = verifyCode(contact, body.code.trim())
   if (!result.ok) {
+    console.warn(`[verify-code] не прошёл: ${result.reason} (${safe})`)
     return NextResponse.json({ ok: false, error: result.reason }, { status: 401 })
   }
+  console.log(`[verify-code] подтверждён: ${safe}`)
 
   // Контакт подтверждён → создаём пользователя в control-plane и стартуем недельный триал.
   // Best-effort: сбой control-plane не блокирует подтверждение (логируем для ретрая позже).
