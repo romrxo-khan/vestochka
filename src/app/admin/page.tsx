@@ -24,9 +24,9 @@ export default async function AdminPage() {
   const crm = getDb().crmRows()
   const cards: Array<[string, string | number, string?]> = [
     [
-      'Места (занято / всего)',
+      'Нагрузка (агентов / мест)',
       `${cap.used} / ${cap.total}`,
-      `${cap.running} агентов запущено · свободно ${cap.free}${cap.full ? ' · ⛔ ПОЛНО' : cap.pct >= 80 ? ' · ⚠️ почти полно' : ''}`,
+      `подписчиков ${cap.subscribers} · свободно ${cap.free}${cap.blocked ? ' · 🛑 BLOCKED (автоскейлер)' : cap.full ? ' · ⛔ ПОЛНО' : cap.pct >= 80 ? ' · ⚠️ почти полно' : ''}`,
     ],
     ['Зарегистрировались', m.registered],
     ['Начали триал', m.trialsStarted, 'ввели карту/почту'],

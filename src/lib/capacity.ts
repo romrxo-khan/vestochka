@@ -7,28 +7,36 @@
 import { getDb } from './control-db'
 import { notifyOwner } from './telegram-notify'
 
-export const SEATS_TOTAL = Math.max(0, Number(process.env.SEATS_TOTAL ?? '20') || 0)
+export const SEATS_TOTAL = Math.max(0, Number(process.env.SEATS_TOTAL ?? '8') || 0)
 
 export interface Capacity {
   total: number
   used: number
-  running: number
+  subscribers: number
   free: number
   full: boolean
+  blocked: boolean
   pct: number
 }
 
+/**
+ * Нагрузка = РЕАЛЬНО запущенные агенты (подключившие MAX), а НЕ число подписчиков:
+ * залогиненный без контейнера MAX ресурсов не ест. `blocked` — флаг от автоскейлера
+ * (не смог расширить флит). full = переполнено ИЛИ автоскейлер заблокировал приём.
+ */
 export function capacity(): Capacity {
   const db = getDb()
-  const used = db.seatsUsed()
-  const running = db.runningAgentsCount()
+  const used = db.runningAgentsCount() // нагрузка = подключившие MAX
+  const subscribers = db.seatsUsed() // живые подписчики (для справки)
   const total = SEATS_TOTAL
+  const blocked = db.kvGet('capacity_blocked') === '1'
   return {
     total,
     used,
-    running,
+    subscribers,
     free: Math.max(0, total - used),
-    full: total > 0 && used >= total,
+    full: blocked || (total > 0 && used >= total),
+    blocked,
     pct: total > 0 ? Math.round((used / total) * 100) : 0,
   }
 }
