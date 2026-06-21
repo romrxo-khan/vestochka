@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import CopyCode from './CopyCode'
 
 interface GroupStatus {
   connected: boolean
@@ -162,9 +161,12 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
 
   const L = LABELS[lang]
   const rtl = lang === 'he'
+  // Deep-link: юзер выбирает свою группу, Telegram добавляет бота СРАЗУ администратором
+  // с правом manage_topics. Схлопывает «добавить бота» + «назначить админом» + «дать право» в 1 тап.
+  const addBotUrl = `https://t.me/${BOT}?startgroup&admin=manage_topics`
   return (
     <div>
-      <p className="lead">Создайте группу и добавьте бота — 4 шага по картинкам ниже.</p>
+      <p className="lead">Создайте группу и добавьте бота — 3 коротких шага.</p>
 
       <div className="guide-card">
         <div className="guide-num">1</div>
@@ -209,34 +211,26 @@ export default function SupergroupGuide({ showDone = false }: { showDone?: boole
       <div className="guide-card">
         <div className="guide-num">3</div>
         <div className="guide-body">
-          <div className="guide-cap">Добавьте бота</div>
+          <div className="guide-cap">Добавьте бота в группу</div>
           <div className="guide-desc">
-            Снова откройте информацию о группе (нажав на название вверху). Нажмите «{L.addMember}». В
-            поле поиска введите <CopyCode text={`@${BOT}`} /> (нажмите, чтобы скопировать), выберите
-            бота из списка → «Добавить» →
-            подтвердите.
+            Нажмите кнопку ниже и выберите только что созданную группу. Telegram сам добавит бота
+            администратором с нужным правом «{L.manageTopics}» — вручную назначать админом и искать
+            галочки не нужно.
           </div>
-          <Phone title={L.addMember} rtl={rtl} tap="Найдите и добавьте бота">
-            <div className="tg-search">🔎 {L.search}: {BOT}</div>
-            <Row label={`@${BOT}`} icon="🐦" hl chevron />
-          </Phone>
-        </div>
-      </div>
-
-      <div className="guide-card">
-        <div className="guide-num">4</div>
-        <div className="guide-body">
-          <div className="guide-cap">Дайте права боту</div>
-          <div className="guide-desc">
-            В информации о группе нажмите «{L.edit}» → «{L.admins}» → «{L.addAdmin}» → выберите{' '}
-            <CopyCode text={`@${BOT}`} />. В списке прав найдите и{' '}
-            <b>обязательно включите «{L.manageTopics}»</b>{' '}
-            (без него бот не сможет создавать темы). Нажмите «Сохранить».
-          </div>
-          <Phone title={L.admins} rtl={rtl} tap={`Включите «${L.manageTopics}»`}>
-            <Row label={L.manageTopics} icon="🗂️" hl toggle="on" />
-            <Row label={L.pin} icon="📌" toggle="on" />
-          </Phone>
+          <a
+            className="pay-btn"
+            href={addBotUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none' }}
+          >
+            <span className="pay-btn-title">Добавить бота в группу</span>
+            <span className="pay-btn-sub">выберите вашу группу — бот станет админом сам</span>
+          </a>
+          <p className="fine" style={{ marginTop: 10 }}>
+            Подтвердите права в открывшемся окне Telegram. После этого вернитесь сюда — статус ниже
+            станет зелёным автоматически.
+          </p>
         </div>
       </div>
 
