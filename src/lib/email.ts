@@ -18,7 +18,9 @@ const FROM = process.env.RESEND_FROM ?? 'Весточка <noreply@vestochka.uk>
 export async function sendVerificationEmail(to: string, code: string): Promise<void> {
   const resend = getResend()
   if (!resend) {
-    // Dev без ключа — печатаем код в консоль, чтобы поток можно было пройти локально.
+    // Приватность: код печатаем ТОЛЬКО в dev (локальный поток). В production отсутствие
+    // ключа — конфиг-ошибка; НЕ печатаем OTP в логи (риск захвата аккаунта).
+    if (process.env.NODE_ENV === 'production') throw new Error('RESEND_API_KEY не задан')
     console.log(`[email:dev] код для ${to}: ${code}`)
     return
   }
@@ -50,7 +52,9 @@ function wrap(inner: string): string {
 async function send(to: string, subject: string, html: string, text: string): Promise<void> {
   const resend = getResend()
   if (!resend) {
-    console.log(`[email:dev] -> ${to}: ${subject}`)
+    // Приватность: email-адрес печатаем ТОЛЬКО в dev. В production молча не отправляем
+    // (письма dunning не критичны для входа), не светим контакт в логи.
+    if (process.env.NODE_ENV !== 'production') console.log(`[email:dev] -> ${to}: ${subject}`)
     return
   }
   await resend.emails.send({ from: FROM, to, subject, html, text })

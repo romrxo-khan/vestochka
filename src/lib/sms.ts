@@ -17,6 +17,12 @@ const MSG = (code: string) => `Весточка: код подтверждени
 export async function sendPhoneCode(phone: string, code: string): Promise<SendResult> {
   const apiId = process.env.SMSRU_API_ID
   if (!apiId) {
+    // Приватность: код печатаем в консоль ТОЛЬКО в dev (для локального прохождения потока).
+    // В production отсутствие ключа — конфигурационная ошибка: НЕ печатаем OTP в логи
+    // (риск захвата аккаунта) и НЕ делаем вид, что отправили.
+    if (process.env.NODE_ENV === 'production') {
+      return { ok: false, provider: 'smsru', error: 'SMSRU_API_ID не задан' }
+    }
     console.log(`[sms:dev] код для ${phone}: ${code}`)
     return { ok: true, provider: 'dev' }
   }
