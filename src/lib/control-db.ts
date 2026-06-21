@@ -47,6 +47,7 @@ export interface User {
   group_ok: number // 1 — бот в группе админом с правом «Управление темами»
   agent_state: string // none|provisioning|running|stopped — что реально крутит провижинер
   agent_url: string | null // адрес агента для роутера (мульти-бокс); null → фолбэк max-user-<id>:8090
+  box: string | null // флит-бокс, закреплённый за юзером (многобоксовость); null — ещё не назначен
   updated_at: string
 }
 
@@ -207,6 +208,7 @@ export class ControlDb {
     if (!has('agent_url')) this.db.exec(`ALTER TABLE users ADD COLUMN agent_url TEXT`)
     if (!has('tg_link_pending')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_link_pending TEXT`)
     if (!has('tg_link_code')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_link_code TEXT`)
+    if (!has('box')) this.db.exec(`ALTER TABLE users ADD COLUMN box TEXT`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_refcode ON users(referral_code) WHERE referral_code IS NOT NULL`,
     )
@@ -555,15 +557,57 @@ export class ControlDb {
    * быть null на момент спавна; провижинер пересоздаёт агента, когда группа появится.
    * Владельца (co-located router+agent) провижинер не трогает — исключается на эндпоинте.
    */
-  desiredAgents(): User[] {
-    return this.db
-      .prepare(
-        `SELECT * FROM users
+  desiredAgents(box?: string): User[] {
+    const base = `SELECT * FROM users
           WHERE max_phone IS NOT NULL
             AND teardown_pending = 0
-            AND status NOT IN ('suspended','cancelled')`,
-      )
-      .all() as unknown as User[]
+            AND status NOT IN ('suspended','cancelled')`
+    // Многобоксовость: с box-параметром отдаём ТОЛЬКО юзеров этого бокса (провижинер
+    // каждого бокса обслуживает своих). Без параметра — все (legacy / один бокс).
+    if (box) return this.db.prepare(base + ` AND box = ?`).all(box) as unknown as User[]
+    return this.db.prepare(base).all() as unknown as User[]
+  }
+
+  /**
+   * Box-assignment (многобоксовость): закрепляет НЕназначенных desired-юзеров (box IS NULL)
+   * за боксами, выбирая наименее загруженный в пределах cap. Уже назначенных НЕ трогаем —
+   * иначе новый бокс «угнал» бы существующих (как было в тесте B3). skip — id, которых не
+   * размещаем на флите (владелец, co-located). Идемпотентно.
+   */
+  assignBoxes(boxes: string[], perBoxCap: number, skip: Set<number>): void {
+    if (!boxes.length) return
+    const unassigned = (
+      this.db
+        .prepare(
+          `SELECT * FROM users
+            WHERE box IS NULL AND max_phone IS NOT NULL AND teardown_pending = 0
+              AND status NOT IN ('suspended','cancelled')`,
+        )
+        .all() as unknown as User[]
+    )
+      .filter((u) => !skip.has(u.id))
+      .sort((a, b) => a.id - b.id)
+    if (!unassigned.length) return
+    const counts = new Map<string, number>()
+    for (const b of boxes) {
+      const r = this.db.prepare(`SELECT COUNT(*) c FROM users WHERE box = ?`).get(b) as { c: number }
+      counts.set(b, r.c)
+    }
+    for (const u of unassigned) {
+      let pick: string | null = null
+      let min = Infinity
+      for (const b of boxes) {
+        const c = counts.get(b) ?? 0
+        if (c < perBoxCap && c < min) {
+          min = c
+          pick = b
+        }
+      }
+      if (!pick) break // все боксы полны — оставляем неназначенным (автоскейлер запросит рост)
+      this.update(u.id, { box: pick })
+      counts.set(pick, (counts.get(pick) ?? 0) + 1)
+      this.logEvent(u.id, 'box_assigned', pick)
+    }
   }
 
   /** Провижинер рапортует реальное состояние контейнера юзера. */
