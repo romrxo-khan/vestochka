@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { getDb } from '@/lib/control-db'
 import { ADMIN_COOKIE, verifyAdminSession } from '@/lib/admin-auth'
 import { capacity } from '@/lib/capacity'
+import AdminKeepAlive from '@/components/AdminKeepAlive'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,6 +40,7 @@ export default async function AdminPage() {
 
   return (
     <main style={{ fontFamily: 'system-ui,-apple-system,Segoe UI,Roboto', background: '#f6f8fb', minHeight: '100vh', padding: 32, color: '#0f1b2d' }}>
+      <AdminKeepAlive />
       <h1 style={{ fontSize: 20, margin: '0 0 4px' }}>Весточка — ключевые показатели</h1>
       <p style={{ color: '#5b6b82', margin: '0 0 24px', fontSize: 13 }}>Обновляется при перезагрузке.</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14 }}>

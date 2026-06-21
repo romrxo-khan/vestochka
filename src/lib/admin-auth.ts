@@ -7,7 +7,10 @@
 import crypto from 'node:crypto'
 
 export const ADMIN_COOKIE = 'admin_session'
-const TTL_MS = 12 * 60 * 60_000 // 12 часов
+// Длинный срок + скользящее продление (см. /api/admin/refresh): пока заходишь в /admin,
+// сессия не истекает; токен вводить заново не нужно. Истекает только если не заходить год.
+export const ADMIN_TTL_MS = 365 * 24 * 60 * 60_000 // 1 год
+const TTL_MS = ADMIN_TTL_MS
 const SECRET = process.env.OTP_SECRET ?? 'dev-otp-secret-change-me'
 
 /** Constant-time сравнение предъявленного токена с ADMIN_TOKEN. */

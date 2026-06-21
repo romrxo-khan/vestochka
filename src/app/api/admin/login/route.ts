@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { ADMIN_COOKIE, checkAdminToken, signAdminSession } from '@/lib/admin-auth'
+import { ADMIN_COOKIE, ADMIN_TTL_MS, checkAdminToken, signAdminSession } from '@/lib/admin-auth'
 
 export const runtime = 'nodejs'
 
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     path: '/',
-    maxAge: 12 * 60 * 60,
+    maxAge: Math.floor(ADMIN_TTL_MS / 1000),
   })
   return res
 }
