@@ -32,9 +32,6 @@ export default function RequisitesPage() {
         <div className="blog-body">
           <ul>
             <li>
-              <strong>ФИО:</strong> Ханбеков Роман Альбертович
-            </li>
-            <li>
               <strong>Статус:</strong> самозанятый (плательщик НПД)
             </li>
             <li>

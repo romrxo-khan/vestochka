@@ -8,7 +8,6 @@ export const metadata: Metadata = {
 
 const EMAIL = 'vestochka99@outlook.com'
 const INN = '164490442194'
-const NAME = 'Ханбеков Роман Альбертович'
 
 export default function PrivacyPage() {
   return (
@@ -36,7 +35,7 @@ export default function PrivacyPage() {
         <div className="blog-body">
           <h2>1. Оператор</h2>
           <p>
-            Оператор персональных данных — {NAME}, самозанятый (плательщик налога на профессиональный
+            Оператор персональных данных — самозанятый (плательщик налога на профессиональный
             доход), ИНН {INN}. Контакт по вопросам обработки данных:{' '}
             <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.
           </p>
