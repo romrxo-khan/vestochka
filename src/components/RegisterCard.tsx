@@ -19,6 +19,7 @@ export default function RegisterCard() {
   const [trialDays, setTrialDays] = useState<number | null>(null)
   const [checkoutBusy, setCheckoutBusy] = useState(false)
   const [cardType, setCardType] = useState<'ru' | 'foreign' | null>(null)
+  const [payNow, setPayNow] = useState(false) // юзер сам выбрал оплатить сразу (иначе — try-first)
   const [returning, setReturning] = useState(false) // аккаунт уже был — это вход, не регистрация
   const [paid, setPaid] = useState(false) // подписка уже оплачена (active)
   const [refCode, setRefCode] = useState('') // реферальный код приглашения
@@ -178,6 +179,7 @@ export default function RegisterCard() {
             </a>
           </>
         ) : payOn ? (
+          payNow ? (
           <>
             {refApplied && (
               <p className="lead" style={{ color: '#9fe3b4' }}>
@@ -198,6 +200,14 @@ export default function RegisterCard() {
                 <button type="button" className="pay-btn alt" onClick={() => setCardType('foreign')}>
                   <span className="pay-btn-title">🌍 Зарубежная карта</span>
                   <span className="pay-btn-sub">оплата в евро</span>
+                </button>
+                <button
+                  type="button"
+                  className="link-back"
+                  onClick={() => setPayNow(false)}
+                  style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 10, display: 'block', width: '100%', textAlign: 'center' }}
+                >
+                  ← пропустить, подключить MAX сейчас
                 </button>
               </>
             ) : cardType === 'ru' ? (
@@ -267,6 +277,37 @@ export default function RegisterCard() {
               </li>
             </ul>
           </>
+          ) : (
+            // TRY-FIRST (по умолчанию): сначала ценность, без цены и карты. Оплата — позже
+            // (PayBox в кабинете + dunning у конца триала). Снимает «платёжную стену» на входе.
+            <>
+              {refApplied && (
+                <p className="lead" style={{ color: '#9fe3b4' }}>
+                  🎁 Код приглашения принят — у вас <strong>2 недели бесплатно</strong>.
+                </p>
+              )}
+              <p className="lead">
+                {returning ? 'С возвращением ✅ ' : 'Почта подтверждена ✅ '}
+                <strong>
+                  Бесплатная неделя активна
+                  {typeof trialDays === 'number' ? ` — осталось ${trialDays} дн.` : ''}.
+                </strong>{' '}
+                Подключим MAX — это пара минут, карта не нужна.
+              </p>
+              <a href="/cabinet" className="pay-btn" style={{ textDecoration: 'none' }}>
+                <span className="pay-btn-title">Перейти в кабинет → подключить MAX</span>
+                <span className="pay-btn-sub">бесплатная неделя уже идёт</span>
+              </a>
+              <button
+                type="button"
+                className="link-back"
+                onClick={() => setPayNow(true)}
+                style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 10, display: 'block', width: '100%', textAlign: 'center' }}
+              >
+                Оформить подписку сейчас
+              </button>
+            </>
+          )
         ) : (
           <p className="lead">
             Почта подтверждена ✅{' '}

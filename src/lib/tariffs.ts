@@ -18,8 +18,8 @@ export const TARIFFS: Tariff[] = [
   {
     id: 'shared',
     name: 'Базовый',
-    rub: 299,
-    eur: 3.99,
+    rub: 159,
+    eur: 1.59,
     tagline: 'Всё, чтобы читать MAX в Telegram',
     features: [
       'Сообщения из MAX приходят в ваш Telegram',
