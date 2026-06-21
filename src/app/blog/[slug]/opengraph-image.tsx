@@ -17,9 +17,12 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const post = await getPostBySlug(slug)
   const title = post?.title ?? 'Весточка'
 
-  const [extrabold, medium] = await Promise.all([
-    readFile(join(process.cwd(), 'src/fonts/Manrope-ExtraBold.woff')),
-    readFile(join(process.cwd(), 'src/fonts/Manrope-Medium.woff')),
+  // Латиница + кириллица на каждый вес (старый единый woff был без латиницы).
+  const [b800lat, b800cyr, m500lat, m500cyr] = await Promise.all([
+    readFile(join(process.cwd(), 'src/fonts/manrope-latin-800-normal.woff')),
+    readFile(join(process.cwd(), 'src/fonts/manrope-cyrillic-800-normal.woff')),
+    readFile(join(process.cwd(), 'src/fonts/manrope-latin-500-normal.woff')),
+    readFile(join(process.cwd(), 'src/fonts/manrope-cyrillic-500-normal.woff')),
   ])
 
   return new ImageResponse(
@@ -60,8 +63,10 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     {
       ...size,
       fonts: [
-        { name: 'Manrope', data: extrabold, weight: 800, style: 'normal' },
-        { name: 'Manrope', data: medium, weight: 500, style: 'normal' },
+        { name: 'Manrope', data: b800lat, weight: 800, style: 'normal' },
+        { name: 'Manrope', data: b800cyr, weight: 800, style: 'normal' },
+        { name: 'Manrope', data: m500lat, weight: 500, style: 'normal' },
+        { name: 'Manrope', data: m500cyr, weight: 500, style: 'normal' },
       ],
     },
   )

@@ -7,9 +7,13 @@ export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 export default async function Image() {
-  const [extrabold, medium] = await Promise.all([
-    readFile(join(process.cwd(), 'src/fonts/Manrope-ExtraBold.woff')),
-    readFile(join(process.cwd(), 'src/fonts/Manrope-Medium.woff')),
+  // ВАЖНО: грузим латиницу И кириллицу для каждого веса. Старый единый woff был
+  // кириллическим сабсетом без латиницы → «MAX»/«Telegram» падали на тонкий дефолт.
+  const [b800lat, b800cyr, m500lat, m500cyr] = await Promise.all([
+    readFile(join(process.cwd(), 'src/fonts/manrope-latin-800-normal.woff')),
+    readFile(join(process.cwd(), 'src/fonts/manrope-cyrillic-800-normal.woff')),
+    readFile(join(process.cwd(), 'src/fonts/manrope-latin-500-normal.woff')),
+    readFile(join(process.cwd(), 'src/fonts/manrope-cyrillic-500-normal.woff')),
   ])
 
   return new ImageResponse(
@@ -54,8 +58,10 @@ export default async function Image() {
     {
       ...size,
       fonts: [
-        { name: 'Manrope', data: extrabold, weight: 800, style: 'normal' },
-        { name: 'Manrope', data: medium, weight: 500, style: 'normal' },
+        { name: 'Manrope', data: b800lat, weight: 800, style: 'normal' },
+        { name: 'Manrope', data: b800cyr, weight: 800, style: 'normal' },
+        { name: 'Manrope', data: m500lat, weight: 500, style: 'normal' },
+        { name: 'Manrope', data: m500cyr, weight: 500, style: 'normal' },
       ],
     },
   )
