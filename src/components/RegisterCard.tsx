@@ -290,7 +290,7 @@ export default function RegisterCard() {
                 {returning ? 'С возвращением ✅ ' : 'Почта подтверждена ✅ '}
                 <strong>
                   Бесплатная неделя активна
-                  {typeof trialDays === 'number' ? ` — осталось ${trialDays} дн.` : ''}.
+                  {typeof trialDays === 'number' ? ` — осталось ${trialDays} дн` : ''}.
                 </strong>{' '}
                 Подключим MAX — это пара минут, карта не нужна.
               </p>
@@ -298,14 +298,15 @@ export default function RegisterCard() {
                 <span className="pay-btn-title">Перейти в кабинет → подключить MAX</span>
                 <span className="pay-btn-sub">бесплатная неделя уже идёт</span>
               </a>
-              <button
-                type="button"
-                className="link-back"
-                onClick={() => setPayNow(true)}
-                style={{ background: 'none', border: 0, color: '#7fb0ff', cursor: 'pointer', marginTop: 10, display: 'block', width: '100%', textAlign: 'center' }}
-              >
-                Оформить подписку сейчас
-              </button>
+              <div style={{ marginTop: 16, textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setPayNow(true)}
+                  style={{ background: 'none', border: 0, padding: 0, color: '#7fb0ff', cursor: 'pointer', font: 'inherit', fontSize: 14, textDecoration: 'underline', textUnderlineOffset: 4 }}
+                >
+                  Оформить подписку сейчас
+                </button>
+              </div>
             </>
           )
         ) : (

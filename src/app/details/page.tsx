@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Tariffs from '@/components/Tariffs'
 
 export const metadata: Metadata = {
   title: 'Что важно знать — Весточка',
@@ -31,7 +32,17 @@ export default function DetailsPage() {
           телефон. Несколько важных моментов о том, как это работает.
         </p>
 
-        <div className="limits" style={{ marginTop: 8 }}>
+        <section id="price" style={{ marginTop: 8 }}>
+          <h2 className="section-h" style={{ fontSize: 22 }}>Тарифы и цена</h2>
+          <p className="section-sub">
+            <strong style={{ color: '#0c1b34' }}>Первая неделя — бесплатно.</strong> Дальше —
+            простая помесячная подписка. Оплата российской (₽) или зарубежной картой (€). Отменить
+            можно в любой момент.
+          </p>
+          <Tariffs currency="both" />
+        </section>
+
+        <div className="limits" style={{ marginTop: 28 }}>
           <div className="limit">
             <h3>История переписки не переносится</h3>
             <p>

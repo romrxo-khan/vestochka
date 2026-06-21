@@ -180,8 +180,9 @@ export default async function CabinetPage({
           </>
         ))}
 
-      {/* Оплата — НИЖЕ подключений (active не показываем). */}
-      {user && ps !== 'active' && (
+      {/* Оплата — ТОЛЬКО в готовом кабинете (setup_done), НЕ во время онбординга:
+          не отвлекаем платежами, пока юзер подключает MAX/Telegram (try-first). */}
+      {user && showCabinet && ps !== 'active' && (
         <div style={{ marginTop: 16 }}>
           <PayBox email={user.email ?? ''} />
         </div>

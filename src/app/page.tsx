@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import RegisterCard from '@/components/RegisterCard'
-import Tariffs from '@/components/Tariffs'
 import HeroMock from '@/components/HeroMock'
 
 // Частые вопросы — заодно FAQPage-разметка для поиска (ловит вопросные запросы).
@@ -23,7 +22,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: 'Сколько стоит «Весточка»?',
-    a: 'Первая неделя — бесплатно. Дальше 159 ₽/мес (для зарубежных карт — €1.59).',
+    a: 'Первая неделя — бесплатно. Дальше — простая помесячная подписка, оплата российской или зарубежной картой. Точную цену смотрите на странице «Тарифы и цена».',
   },
 ]
 
@@ -154,7 +153,11 @@ export default function Home() {
           </strong>{' '}
           Подписку можно отменить в любой момент. Оплата российской (₽) или зарубежной картой (€).
         </p>
-        <Tariffs currency="both" />
+        <div className="act" style={{ justifyContent: 'center', marginTop: 14 }}>
+          <Link href="/details#price" className="button-ghost">
+            Тарифы и цена →
+          </Link>
+        </div>
         <p className="section-sub" style={{ marginTop: 18 }}>
           <strong>Как вы получаете услугу.</strong> «Весточка» — онлайн-сервис, без физической
           доставки. Сразу после оплаты доступ открывается в личном кабинете: подключаете MAX и
