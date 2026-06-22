@@ -373,6 +373,7 @@ export class ControlDb {
       throw new Error('claimMaxPhone failed')
     }
     this.logEvent(userId, 'max_phone_claimed', phone)
+    this.maybeMarkSetupDone(userId) // если группа уже подключена — авто-«Готово»
     return { ok: true, phone }
   }
 
@@ -758,6 +759,22 @@ export class ControlDb {
     this.update(userId, { setup_done: done ? 1 : 0 })
   }
 
+  /**
+   * Авто-завершение онбординга: если у юзера всё подключено (MAX + группа с правами),
+   * ставим setup_done=1, не дожидаясь ручного «Готово». Тогда кабинет сразу показывает
+   * личный кабинет (а не шаги), и в дашборде/CRM юзер не выглядит недонастроенным.
+   * Вызывается из обеих точек (подключение MAX и подключение группы) — порядок любой.
+   */
+  private maybeMarkSetupDone(userId: number): void {
+    const u = this.db
+      .prepare(`SELECT group_ok, max_phone, setup_done FROM users WHERE id = ?`)
+      .get(userId) as { group_ok: number; max_phone: string | null; setup_done: number } | undefined
+    if (u && u.setup_done !== 1 && u.group_ok === 1 && u.max_phone) {
+      this.update(userId, { setup_done: 1 })
+      this.logEvent(userId, 'setup_auto_done', '')
+    }
+  }
+
   /** Сброс подключения MAX (смена номера): чистим номер и сессию онбординга. */
   resetMax(userId: number): void {
     this.update(userId, { max_phone: null })
@@ -790,6 +807,7 @@ export class ControlDb {
       group_ok: groupId && ok ? 1 : 0,
     })
     this.logEvent(userId, groupId ? (ok ? 'group_ok' : 'group_added') : 'group_removed', String(groupId ?? ''))
+    if (groupId && ok) this.maybeMarkSetupDone(userId) // всё подключено → авто-«Готово»
     return { ok: true }
   }
 
