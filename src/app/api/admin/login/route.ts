@@ -15,7 +15,11 @@ export async function GET(req: Request) {
   res.cookies.set(ADMIN_COOKIE, signAdminSession(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    // lax (не strict): при заходе по ссылке логина из Telegram/почты/заметок переход
+    // /api/admin/login → /admin межсайтовый, и strict-куку браузер не шлёт на редирект
+    // (видно «Доступ закрыт», хотя кука поставлена). lax шлёт куку на top-level переходы
+    // и при этом защищает от CSRF (cross-site POST/subresource). Для сессии админки — норма.
+    sameSite: 'lax',
     path: '/',
     maxAge: Math.floor(ADMIN_TTL_MS / 1000),
   })

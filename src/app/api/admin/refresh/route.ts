@@ -18,7 +18,7 @@ export async function POST() {
   res.cookies.set(ADMIN_COOKIE, signAdminSession(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax', // см. login/route.ts: strict рвёт вход по ссылке-редиректу
     path: '/',
     maxAge: Math.floor(ADMIN_TTL_MS / 1000),
   })
