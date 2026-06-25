@@ -9,9 +9,9 @@ export default function HeroMock() {
         <div className="flow-node flow-max">
           <div className="flow-cap">MAX</div>
           <div className="flow-bubbles">
-            <span className="fb fb-in" />
-            <span className="fb fb-in short" />
-            <span className="fb fb-in" />
+            <span className="fb fb-in">Ты доехал?</span>
+            <span className="fb fb-in">Скинул фото 📷</span>
+            <span className="fb fb-in">Позвони 🙏</span>
           </div>
           <div className="flow-sub">сообщения приходят в MAX</div>
         </div>
@@ -30,9 +30,9 @@ export default function HeroMock() {
         <div className="flow-node flow-tg">
           <div className="flow-cap">Telegram</div>
           <div className="flow-bubbles">
-            <span className="fb fb-out" />
-            <span className="fb fb-in short" />
-            <span className="fb fb-out" />
+            <span className="fb fb-in">Ты доехал?</span>
+            <span className="fb fb-out">Да, доехал 🙂</span>
+            <span className="fb fb-in">Позвони 🙏</span>
           </div>
           <div className="flow-sub">в вашем Telegram ✓</div>
         </div>

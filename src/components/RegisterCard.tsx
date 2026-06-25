@@ -378,7 +378,7 @@ export default function RegisterCard() {
               <input
                 type="text"
                 name="ref"
-                placeholder="Код приглашения (если есть) — +неделя"
+                placeholder="Код приглашения (если есть)"
                 autoComplete="off"
                 value={refCode}
                 onChange={(e) => setRefCode(e.target.value.toUpperCase())}
