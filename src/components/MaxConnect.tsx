@@ -78,6 +78,7 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
   const [active, setActive] = useState(false) // пошёл ли онбординг (включает опрос)
   const [elapsedSec, setElapsedSec] = useState(0) // сколько идём в «рабочем» состоянии
   const [submitted, setSubmitted] = useState(false) // ввод отправлен, ждём обработки контейнером
+  const [awaitingInput, setAwaitingInput] = useState(false) // контейнер ждёт наш ввод (pending в БД)
   const router = useRouter()
 
   // Как MAX подключился — обновляем страницу, чтобы открылся Шаг 3 (группа).
@@ -110,7 +111,10 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
       setState(d.state as State)
       setDetail(d.detail ?? null)
       setCaptcha(d.captchaImage ?? null)
-      if (d.state !== 'IDLE') setActive(true)
+      setAwaitingInput(Boolean(d.awaitingInput))
+      // Не считаем «активным» (крутилка) состояние, где мост лишь ЖДЁТ от нас телефон
+      // (PHONE_REQUIRED без pending-ввода) — там должна быть форма ввода, а не спиннер.
+      if (d.state !== 'IDLE' && !(d.state === 'PHONE_REQUIRED' && !d.awaitingInput)) setActive(true)
     } catch {
       /* нет связи — попробуем на следующем тике */
     }
@@ -343,8 +347,10 @@ export default function MaxConnect({ canConnect }: { sessionId: string; canConne
     )
   }
 
-  // Активный промежуточный шаг (запуск/капча/ждём телефон) — живой индикатор.
-  if (active && state !== 'IDLE') {
+  // Активный промежуточный шаг (запуск/капча/обработка) — живой индикатор.
+  // НО: если мост лишь ждёт от нас телефон (PHONE_REQUIRED без pending) — это не «крутилка»,
+  // а форма ввода (см. ниже). Иначе ре-вход завис бы на «Передаём номер…».
+  if (active && state !== 'IDLE' && !(state === 'PHONE_REQUIRED' && !awaitingInput)) {
     const { text, step } = statusFor(state)
     return (
       <div style={{ marginTop: 8 }}>
