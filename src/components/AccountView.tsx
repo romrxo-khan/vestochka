@@ -61,9 +61,9 @@ export default function AccountView(p: Props) {
       {p.needsReauth && (
         <section
           className="cta"
-          style={{ marginTop: 8, borderColor: '#ffb020', background: 'rgba(255,176,32,.07)' }}
+          style={{ marginTop: 8, border: '2px solid #ffb020', boxShadow: '0 0 0 4px rgba(255,176,32,.12)' }}
         >
-          <div className="head">🔌 Сессия MAX отключилась</div>
+          <div className="head" style={{ color: '#ffc24d' }}>🔌 Сессия MAX отключилась</div>
           <p className="lead">
             Сообщения из MAX не приходят, пока вы не войдёте заново. Это <strong>тот же номер</strong>,
             не нужно ничего менять — просто подтвердите вход кодом из SMS.
