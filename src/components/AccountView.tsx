@@ -68,14 +68,16 @@ export default function AccountView(p: Props) {
             Сообщения из MAX не приходят, пока вы не войдёте заново. Это <strong>тот же номер</strong>,
             не нужно ничего менять — просто подтвердите вход кодом из SMS.
           </p>
-          <button type="button" className="pay-btn" onClick={() => toggle('reauth')}>
-            <span className="pay-btn-title">Обновить вход в MAX</span>
-            <span className="pay-btn-sub">войти заново тем же номером</span>
-          </button>
-          {panel === 'reauth' && (
-            <div style={{ marginTop: 12 }}>
+          {panel === 'reauth' ? (
+            // После старта ре-входа кнопку убираем — остаётся только сам флоу (не отвлекает).
+            <div style={{ marginTop: 4 }}>
               <MaxConnect sessionId={p.sessionId} canConnect />
             </div>
+          ) : (
+            <button type="button" className="pay-btn" onClick={() => setPanel('reauth')}>
+              <span className="pay-btn-title">Обновить вход в MAX</span>
+              <span className="pay-btn-sub">войти заново тем же номером</span>
+            </button>
           )}
         </section>
       )}
