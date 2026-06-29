@@ -14,7 +14,7 @@ interface Props {
   daysRemaining: number
   statusLabel: string
   maxPhone: string | null
-  maxOnline: boolean
+  needsReauth: boolean
   sessionId: string
   tgLinked: boolean
   groupOk: boolean
@@ -58,7 +58,7 @@ export default function AccountView(p: Props) {
 
   return (
     <>
-      {!p.maxOnline && (
+      {p.needsReauth && (
         <section
           className="cta"
           style={{ marginTop: 8, borderColor: '#ffb020', background: 'rgba(255,176,32,.07)' }}

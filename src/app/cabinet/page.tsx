@@ -59,7 +59,15 @@ export default async function CabinetPage({
   const botUser = process.env.NEXT_PUBLIC_BOT_USERNAME
   const tgLinked = Boolean(user?.tg_user_id)
   const linkUrl = user && botUser ? `https://t.me/${botUser}?start=${signLinkToken(user.id)}` : null
-  const maxOnline = user ? db.onbGet(user.id)?.state === 'ONLINE' : false
+  const onbState = user ? db.onbGet(user.id)?.state : undefined
+  const maxOnline = onbState === 'ONLINE'
+  // Кнопка ре-входа показывается ТОЛЬКО когда мост ЯВНО просит авторизацию (активный запрос),
+  // а не по умолчанию. ONLINE / нет данных / IDLE → не показываем.
+  const needsReauth =
+    onbState !== undefined &&
+    ['PHONE_REQUIRED', 'SOLVING_CAPTCHA', 'HUMAN_CAPTCHA_REQUIRED', 'CODE_REQUIRED', 'PASSWORD_REQUIRED', 'ERROR'].includes(
+      onbState,
+    )
   // Личный кабинет показываем ТОЛЬКО после ручного «Готово» (setup_done). Раньше
   // авто-переключали по «всё подключено» → юзера выкидывало сразу после Шага 3, не дав
   // прочитать Шаг 4. Теперь выход из онбординга — только когда юзер сам нажмёт «Готово».
@@ -128,7 +136,7 @@ export default async function CabinetPage({
             daysRemaining={days}
             statusLabel={statusLabel}
             maxPhone={user.max_phone}
-            maxOnline={maxOnline}
+            needsReauth={needsReauth}
             sessionId={session_id ?? ''}
             tgLinked={tgLinked}
             groupOk={user.group_ok === 1}
