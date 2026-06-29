@@ -14,6 +14,8 @@ interface Props {
   daysRemaining: number
   statusLabel: string
   maxPhone: string | null
+  maxOnline: boolean
+  sessionId: string
   tgLinked: boolean
   groupOk: boolean
   groupTitle: string | null
@@ -22,7 +24,7 @@ interface Props {
   linkUrl: string | null
 }
 
-type Panel = 'none' | 'max' | 'tg' | 'group'
+type Panel = 'none' | 'max' | 'tg' | 'group' | 'reauth'
 
 /** Личный кабинет: данные, реальные действия (сменить MAX / заменить TG), группа, приглашение. */
 export default function AccountView(p: Props) {
@@ -56,6 +58,28 @@ export default function AccountView(p: Props) {
 
   return (
     <>
+      {!p.maxOnline && (
+        <section
+          className="cta"
+          style={{ marginTop: 8, borderColor: '#ffb020', background: 'rgba(255,176,32,.07)' }}
+        >
+          <div className="head">🔌 Сессия MAX отключилась</div>
+          <p className="lead">
+            Сообщения из MAX не приходят, пока вы не войдёте заново. Это <strong>тот же номер</strong>,
+            не нужно ничего менять — просто подтвердите вход кодом из SMS.
+          </p>
+          <button type="button" className="pay-btn" onClick={() => toggle('reauth')}>
+            <span className="pay-btn-title">Обновить вход в MAX</span>
+            <span className="pay-btn-sub">войти заново тем же номером</span>
+          </button>
+          {panel === 'reauth' && (
+            <div style={{ marginTop: 12 }}>
+              <MaxConnect sessionId={p.sessionId} canConnect />
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="cta" style={{ marginTop: 8 }}>
         <div className="head">Ваши данные</div>
         <div className="acc-rows">

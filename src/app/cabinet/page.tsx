@@ -128,6 +128,8 @@ export default async function CabinetPage({
             daysRemaining={days}
             statusLabel={statusLabel}
             maxPhone={user.max_phone}
+            maxOnline={maxOnline}
+            sessionId={session_id ?? ''}
             tgLinked={tgLinked}
             groupOk={user.group_ok === 1}
             groupTitle={user.group_title}
