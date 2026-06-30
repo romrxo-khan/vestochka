@@ -37,6 +37,7 @@ export interface User {
   tg_link_code: string | null // одноразовый секретный код привязки TG (показан в кабинете)
   grace_until: string | null // конец grace-периода после триала (4 дня)
   last_reminder_at: string | null // когда слали последнее письмо-напоминание (max 1/день)
+  email_unsub: number // 1 — пользователь отписался от писем-напоминаний (dunning), Telegram не трогаем
   teardown_pending: number // 1 — провижинеру снести MAX-профиль (неоплата)
   restore_pending: number // 1 — провижинеру вернуть профиль после оплаты
   referral_code: string | null // личный код для приглашений (генерится в кабинете)
@@ -209,6 +210,8 @@ export class ControlDb {
     if (!has('tg_link_pending')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_link_pending TEXT`)
     if (!has('tg_link_code')) this.db.exec(`ALTER TABLE users ADD COLUMN tg_link_code TEXT`)
     if (!has('box')) this.db.exec(`ALTER TABLE users ADD COLUMN box TEXT`)
+    if (!has('email_unsub'))
+      this.db.exec(`ALTER TABLE users ADD COLUMN email_unsub INTEGER NOT NULL DEFAULT 0`)
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS uniq_users_refcode ON users(referral_code) WHERE referral_code IS NOT NULL`,
     )
@@ -506,6 +509,11 @@ export class ControlDb {
 
   markReminded(userId: number): void {
     this.update(userId, { last_reminder_at: new Date().toISOString() })
+  }
+
+  /** Отписка/переподписка на письма-напоминания (dunning). Telegram-канал не затрагивает. */
+  setEmailUnsub(userId: number, unsub: boolean): void {
+    this.update(userId, { email_unsub: unsub ? 1 : 0 })
   }
 
   /**

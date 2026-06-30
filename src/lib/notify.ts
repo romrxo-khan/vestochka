@@ -6,10 +6,15 @@
  */
 import type { User } from './control-db'
 import { notifyTelegram } from './telegram-notify'
-import { sendTrialEndingEmail, sendGraceEmail } from './email'
+import { sendTrialEndingEmail, sendGraceEmail, unsubUrl } from './email'
 
 const SITE = process.env.SITE_URL ?? 'https://vestochka.uk'
 const CABINET = `${SITE}/cabinet`
+
+/** Письма-напоминания шлём, только если есть email и юзер не отписался (Telegram не трогаем). */
+function emailable(u: User): boolean {
+  return !!u.email && !u.email_unsub
+}
 
 /** Триал скоро закончится (за `days` дней). */
 export async function notifyTrialEnding(u: User, days: number): Promise<void> {
@@ -20,7 +25,7 @@ export async function notifyTrialEnding(u: User, days: number): Promise<void> {
       `⏳ Бесплатная неделя в Весточке заканчивается через ${d}.\nЧтобы сообщения из MAX продолжали приходить в Telegram — оформите подписку: ${CABINET}`,
     )
   }
-  if (u.email) await sendTrialEndingEmail(u.email, days).catch(() => {})
+  if (emailable(u)) await sendTrialEndingEmail(u.email!, days, unsubUrl(u.id)).catch(() => {})
 }
 
 /** Доступ приостановлен «мягко» (grace): подписка не активна, сообщения копятся. */
@@ -31,7 +36,7 @@ export async function notifyGrace(u: User): Promise<void> {
       `📨 Подписка Весточки сейчас не активна. Сообщения из MAX продолжают приходить, но не пересылаются в Telegram.\nПродлите подписку / обновите оплату — и доступ вернётся сразу: ${CABINET}`,
     )
   }
-  if (u.email) await sendGraceEmail(u.email).catch(() => {})
+  if (emailable(u)) await sendGraceEmail(u.email!, unsubUrl(u.id)).catch(() => {})
 }
 
 /** Списание подписки не прошло (рекуррент) — сразу после отказа провайдера. */
@@ -43,7 +48,7 @@ export async function notifyPaymentFailed(u: User, graceDays: number): Promise<v
       `⚠️ Не удалось списать оплату подписки Весточки.\nОбновите карту в кабинете в течение ${d}, иначе пересылка из MAX приостановится: ${CABINET}`,
     )
   }
-  if (u.email) await sendGraceEmail(u.email).catch(() => {})
+  if (emailable(u)) await sendGraceEmail(u.email!, unsubUrl(u.id)).catch(() => {})
 }
 
 /** Доступ полностью приостановлен (grace истёк, профиль сносится). */
@@ -54,7 +59,7 @@ export async function notifySuspended(u: User): Promise<void> {
       `⛔ Доступ к Весточке приостановлен — оплата так и не поступила.\nПродлите подписку, и пересылка из MAX вернётся: ${CABINET}`,
     )
   }
-  if (u.email) await sendGraceEmail(u.email).catch(() => {})
+  if (emailable(u)) await sendGraceEmail(u.email!, unsubUrl(u.id)).catch(() => {})
 }
 
 /** Оплата получена после простоя — доступ восстановлен. */
